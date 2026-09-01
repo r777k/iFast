@@ -18,6 +18,9 @@ class EndSession(BaseModel):
 
 @router.post("")
 async def start_session(payload: StartSession, user_id: str = Depends(get_current_user)):
+    # 1. Strip the timezone info to make it offset-naive for PostgreSQL
+    naive_meal_time = payload.last_meal_time.replace(tzinfo=None)
+    
     async with get_db_connection() as conn:
         # Prevent overlapping active sessions
         await conn.execute(
@@ -25,7 +28,6 @@ async def start_session(payload: StartSession, user_id: str = Depends(get_curren
             user_id
         )
         
-        # FIX: Added explicit type casting (::timestamp and ::numeric) to resolve AmbiguousParameterError
         query = """
             INSERT INTO fasting_sessions (
                 user_id, session_date, last_meal_time, fast_start_time, 
@@ -35,8 +37,9 @@ async def start_session(payload: StartSession, user_id: str = Depends(get_curren
                 $2::timestamp + ($3::numeric * INTERVAL '1 hour'), $3::numeric, 'active', $4
             ) RETURNING id, session_date, fast_start_time, planned_fast_end_time, status
         """
+        # 2. Pass the naive_meal_time into the query instead of payload.last_meal_time
         row = await conn.fetchrow(
-            query, user_id, payload.last_meal_time, payload.target_duration_hours, payload.notes
+            query, user_id, naive_meal_time, payload.target_duration_hours, payload.notes
         )
         return dict(row)
 
