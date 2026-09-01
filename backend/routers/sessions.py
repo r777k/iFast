@@ -25,13 +25,14 @@ async def start_session(payload: StartSession, user_id: str = Depends(get_curren
             user_id
         )
         
+        # FIX: Added explicit type casting (::timestamp and ::numeric) to resolve AmbiguousParameterError
         query = """
             INSERT INTO fasting_sessions (
                 user_id, session_date, last_meal_time, fast_start_time, 
                 planned_fast_end_time, target_duration_hours, status, notes
             ) VALUES (
-                $1, CURRENT_DATE, $2, $2, 
-                $2 + ($3 * INTERVAL '1 hour'), $3, 'active', $4
+                $1, CURRENT_DATE, $2::timestamp, $2::timestamp, 
+                $2::timestamp + ($3::numeric * INTERVAL '1 hour'), $3::numeric, 'active', $4
             ) RETURNING id, session_date, fast_start_time, planned_fast_end_time, status
         """
         row = await conn.fetchrow(
