@@ -39,7 +39,7 @@ async def start_session(payload: StartSession, user_id: str = Depends(get_curren
         """
         # 2. Pass the naive_meal_time into the query instead of payload.last_meal_time
         row = await conn.fetchrow(
-            query, user_id, naive_meal_time, payload.target_duration_hours, payload.notes
+            query, user_id, payload.last_meal_time, payload.target_duration_hours, payload.notes
         )
         return dict(row)
 
@@ -71,7 +71,7 @@ async def end_session(session_id: str, payload: EndSession, user_id: str = Depen
             RETURNING id, status, actual_duration_hours, is_goal_met
         """
         # 2. Pass naive_end_time into the query instead of payload.actual_fast_end_time
-        row = await conn.fetchrow(query, naive_end_time, payload.notes, session_id, user_id)
+        row = await conn.fetchrow(query, payload.actual_fast_end_time, payload.notes, session_id, user_id)
         
         if not row:
             raise HTTPException(status_code=404, detail="Active session not found")
