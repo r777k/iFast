@@ -81,13 +81,13 @@ async def verify_otp(payload: OTPVerify):
         user = await conn.fetchrow("SELECT id FROM users WHERE email = $1", payload.email)
         if not user:
             user_id = await conn.fetchval(
-                "INSERT INTO users (email, timezone) VALUES ($1, $2) RETURNING id", 
+                "INSERT INTO users (email, time_zone) VALUES ($1, $2) RETURNING id", 
                 payload.email, payload.timezone
             )
         else:
             user_id = user['id']
             # Optionally update their timezone if they traveled
-            await conn.execute("UPDATE users SET timezone = $1 WHERE id = $2", payload.timezone, user_id)
+            await conn.execute("UPDATE users SET time_zone = $1 WHERE id = $2", payload.timezone, user_id)
         await conn.execute("DELETE FROM auth_otps WHERE email = $1", payload.email)
     token = create_access_token(data={"sub": str(user_id), "email": payload.email})
     return {"access_token": token, "token_type": "bearer"}
