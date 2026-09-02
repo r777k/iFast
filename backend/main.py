@@ -1,7 +1,7 @@
 import os
 import random
 import resend
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from contextlib import asynccontextmanager
