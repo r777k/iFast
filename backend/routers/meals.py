@@ -16,7 +16,7 @@ class MealCreate(BaseModel):
     notes: Optional[str] = None
 
 @router.post("")
-async def log_meal(payload: MealLog, user_id: str = Depends(get_current_user)):
+async def log_meal(payload: MealCreate, user_id: str = Depends(get_current_user)):
     # Preemptively fix the timezone mismatch!
     naive_meal_time = payload.meal_time.replace(tzinfo=None)
     async with get_db_connection() as conn:
