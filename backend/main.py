@@ -43,7 +43,10 @@ class OTPVerify(BaseModel):
     email: EmailStr
     otp: str
 
-@app.post("/auth/request-otp")
+# Wrap auth in its own router
+auth_router = APIRouter(prefix="/auth", tags=["Auth"])
+
+@auth_router.post("/request-otp")
 async def request_otp(payload: OTPRequest):
     otp = str(random.randint(100000, 999999))
     hashed_otp = hash_otp(otp)
@@ -62,7 +65,7 @@ async def request_otp(payload: OTPRequest):
     })
     return {"message": "OTP sent successfully"}
 
-@app.post("/auth/verify-otp")
+@auth_router.post("/verify-otp")
 async def verify_otp(payload: OTPVerify):
     hashed_input = hash_otp(payload.otp)
     
@@ -88,6 +91,7 @@ async def verify_otp(payload: OTPVerify):
     return {"access_token": token, "token_type": "bearer"}
 
 # 6. Include ALL Routers LAST (After 'app' is defined)
+app.include_router(auth_router, prefix="/v1")      # <-- Auth is now under /v1
 app.include_router(sessions.router, prefix="/v1")
 app.include_router(meals.router, prefix="/v1")
 app.include_router(plans.router, prefix="/v1")
