@@ -16,7 +16,9 @@ class MealCreate(BaseModel):
     notes: Optional[str] = None
 
 @router.post("")
-async def log_meal(payload: MealCreate, user_id: str = Depends(get_current_user)):
+async def log_meal(payload: MealLog, user_id: str = Depends(get_current_user)):
+    # Preemptively fix the timezone mismatch!
+    naive_meal_time = payload.meal_time.replace(tzinfo=None)
     async with get_db_connection() as conn:
         # First, ensure the targeted fasting session actually belongs to this user
         session = await conn.fetchrow(
@@ -34,7 +36,7 @@ async def log_meal(payload: MealCreate, user_id: str = Depends(get_current_user)
             RETURNING id, meal_time, meal_type, meal_size, description
         """
         row = await conn.fetchrow(
-            query, payload.fasting_session_id, user_id, payload.meal_time, 
+            query, payload.fasting_session_id, user_id, naive_meal_time, 
             payload.meal_type, payload.meal_size, payload.description, payload.notes
         )
         return dict(row)

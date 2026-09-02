@@ -55,22 +55,27 @@ async def get_today_session(user_id: str = Depends(get_current_user)):
 
 @router.post("/{session_id}/end")
 async def end_session(session_id: str, payload: EndSession, user_id: str = Depends(get_current_user)):
+    # 1. Strip the timezone info to make it offset-naive for PostgreSQL
+    naive_end_time = payload.actual_fast_end_time.replace(tzinfo=None)
+    
     async with get_db_connection() as conn:
         query = """
             UPDATE fasting_sessions 
-            SET actual_fast_end_time = $1,
-                actual_duration_hours = EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600,
-                status = 'completed',
-                is_goal_met = (EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600) >= target_duration_hours,
+            SET status = 'completed', 
+                actual_fast_end_time = $1::timestamp,
+                actual_duration_hours = EXTRACT(EPOCH FROM ($1::timestamp - fast_start_time)) / 3600,
+                is_goal_met = (EXTRACT(EPOCH FROM ($1::timestamp - fast_start_time)) / 3600) >= target_duration_hours,
                 notes = COALESCE($2, notes),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $3 AND user_id = $4 AND status = 'active'
-            RETURNING id, actual_fast_end_time, actual_duration_hours, status, is_goal_met
+            RETURNING id, status, actual_duration_hours, is_goal_met
         """
-        row = await conn.fetchrow(query, payload.actual_fast_end_time, payload.notes, session_id, user_id)
+        # 2. Pass naive_end_time into the query instead of payload.actual_fast_end_time
+        row = await conn.fetchrow(query, naive_end_time, payload.notes, session_id, user_id)
         
         if not row:
-            raise HTTPException(status_code=404, detail="Active session not found or already completed")
+            raise HTTPException(status_code=404, detail="Active session not found")
+            
         return dict(row)
 
 
