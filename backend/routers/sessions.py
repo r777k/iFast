@@ -18,26 +18,22 @@ class EndSession(BaseModel):
 
 @router.post("")
 async def start_session(payload: StartSession, user_id: str = Depends(get_current_user)):
-    # 1. Strip the timezone info to make it offset-naive for PostgreSQL
-    naive_meal_time = payload.last_meal_time.replace(tzinfo=None)
-    
     async with get_db_connection() as conn:
-        # Prevent overlapping active sessions
         await conn.execute(
             "UPDATE fasting_sessions SET status = 'broken' WHERE user_id = $1 AND status = 'active'",
             user_id
         )
         
+        # Changed ::timestamp to ::timestamptz
         query = """
             INSERT INTO fasting_sessions (
                 user_id, session_date, last_meal_time, fast_start_time, 
                 planned_fast_end_time, target_duration_hours, status, notes
             ) VALUES (
-                $1, CURRENT_DATE, $2::timestamp, $2::timestamp, 
-                $2::timestamp + ($3::numeric * INTERVAL '1 hour'), $3::numeric, 'active', $4
+                $1, CURRENT_DATE, $2::timestamptz, $2::timestamptz, 
+                $2::timestamptz + ($3::numeric * INTERVAL '1 hour'), $3::numeric, 'active', $4
             ) RETURNING id, session_date, fast_start_time, planned_fast_end_time, status
         """
-        # 2. Pass the naive_meal_time into the query instead of payload.last_meal_time
         row = await conn.fetchrow(
             query, user_id, payload.last_meal_time, payload.target_duration_hours, payload.notes
         )
@@ -55,22 +51,19 @@ async def get_today_session(user_id: str = Depends(get_current_user)):
 
 @router.post("/{session_id}/end")
 async def end_session(session_id: str, payload: EndSession, user_id: str = Depends(get_current_user)):
-    # 1. Strip the timezone info to make it offset-naive for PostgreSQL
-    naive_end_time = payload.actual_fast_end_time.replace(tzinfo=None)
-    
     async with get_db_connection() as conn:
+        # Changed ::timestamp to ::timestamptz
         query = """
             UPDATE fasting_sessions 
             SET status = 'completed', 
-                actual_fast_end_time = $1::timestamp,
-                actual_duration_hours = EXTRACT(EPOCH FROM ($1::timestamp - fast_start_time)) / 3600,
-                is_goal_met = (EXTRACT(EPOCH FROM ($1::timestamp - fast_start_time)) / 3600) >= target_duration_hours,
+                actual_fast_end_time = $1::timestamptz,
+                actual_duration_hours = EXTRACT(EPOCH FROM ($1::timestamptz - fast_start_time)) / 3600,
+                is_goal_met = (EXTRACT(EPOCH FROM ($1::timestamptz - fast_start_time)) / 3600) >= target_duration_hours,
                 notes = COALESCE($2, notes),
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $3 AND user_id = $4 AND status = 'active'
             RETURNING id, status, actual_duration_hours, is_goal_met
         """
-        # 2. Pass naive_end_time into the query instead of payload.actual_fast_end_time
         row = await conn.fetchrow(query, payload.actual_fast_end_time, payload.notes, session_id, user_id)
         
         if not row:
