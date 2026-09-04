@@ -81,8 +81,10 @@ async def get_weekly_analytics(start_date: date, end_date: date, user_id: str = 
 async def get_monthly_analytics(month: str, user_id: str = Depends(get_current_user)):
     # Expected format for month: "YYYY-MM"
     async with get_db_connection() as conn:
-        # Utilizing the system view created during DB initialization
-        target_date = f"{month}-01"
+        # 1. Parse the string into a real Python date object for asyncpg
+        y, m = map(int, month.split('-'))
+        target_date = date(y, m, 1)
+
         metrics_query = """
             SELECT total_sessions as total_fasts, completed_sessions as completed_fasts,
                    COALESCE(avg_duration, 0) as average_duration_hours, 
@@ -113,6 +115,7 @@ async def get_monthly_analytics(month: str, user_id: str = Depends(get_current_u
             WHERE user_id = $1 AND TO_CHAR(session_date, 'YYYY-MM') = $2 AND status = 'completed'
             ORDER BY session_date ASC
         """
+        # Note: $2 here is the string 'month' ("YYYY-MM") because we are matching against TO_CHAR
         daily_summary = await conn.fetch(daily_query, user_id, month)
 
         if not metrics:
