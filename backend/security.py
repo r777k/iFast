@@ -10,7 +10,7 @@ def hash_otp(otp: str) -> str:
     """Creates a SHA-256 blind hash of the OTP."""
     return hashlib.sha256(otp.encode()).hexdigest()
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=2880)):
     to_encode = data.copy()
     expire = datetime.utcnow() + expires_delta
     to_encode.update({"exp": expire})
