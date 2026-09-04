@@ -167,15 +167,14 @@ async def handle_snack_decision(session_id: str, payload: SnackDecision, user_id
             await conn.execute(
                 """
                 UPDATE fasting_sessions 
-                SET last_meal_time = $1,
-                    fast_start_time = $1,
-                    planned_fast_end_time = $1 + (target_duration_hours * INTERVAL '1 hour')
+                SET last_meal_time = $1::timestamptz,
+                    fast_start_time = $1::timestamptz,
+                    planned_fast_end_time = $1::timestamptz + (target_duration_hours * INTERVAL '1 hour')
                 WHERE id = $2 AND user_id = $3
                 """,
                 aware_meal_time, session_id, user_id
             )
-            return {"id": session_id, "status": "active", "last_meal_time": aware_meal_time, "message": "Fast restarted successfully"}
-        
+            return {"id": session_id, "status": "active", "last_meal_time": aware_meal_time, "message": "Fast restarted successfully"}        
         else:
             raise HTTPException(status_code=400, detail="Invalid decision")
 
