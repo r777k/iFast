@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from database import get_db_connection
 from dependencies import get_current_user
 
@@ -101,7 +101,7 @@ async def log_snack(session_id: str, payload: SnackLog, user_id: str = Depends(g
         meal = await conn.fetchrow(
             """
             INSERT INTO meals (fasting_session_id, user_id, meal_time, meal_type, meal_size, description)
-            VALUES ($1, $2, $3, 'snack', $4, $5)
+            VALUES ($1, $2, $3::timestamptz, 'snack', $4, $5)
             RETURNING id
             """,
             session_id, user_id, payload.snack_time, payload.meal_size, payload.description
@@ -141,7 +141,10 @@ async def handle_snack_decision(session_id: str, payload: SnackDecision, user_id
             meal = await conn.fetchrow("SELECT meal_time FROM meals WHERE id = $1", payload.meal_id)
             if not meal:
                 raise HTTPException(status_code=404, detail="Meal record not found")
-                
+				            
+            # Convert the naive db timestamp to aware UTC so asyncpg can encode it for timestamptz columns
+            aware_meal_time = meal['meal_time'].replace(tzinfo=timezone.utc)
+            
             await conn.execute(
                 """
                 UPDATE fasting_sessions 
@@ -151,13 +154,16 @@ async def handle_snack_decision(session_id: str, payload: SnackDecision, user_id
                     is_goal_met = (EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600) >= target_duration_hours
                 WHERE id = $2 AND user_id = $3
                 """,
-                meal['meal_time'], session_id, user_id
+                aware_meal_time, session_id, user_id
             )
             return {"id": session_id, "status": "completed", "message": "Fast ended at snack time"}
             
         elif payload.decision == "restart":
             meal = await conn.fetchrow("SELECT meal_time FROM meals WHERE id = $1", payload.meal_id)
-            # Update the start time to the snack time, and push the planned end time out
+            
+            # Convert to aware UTC
+            aware_meal_time = meal['meal_time'].replace(tzinfo=timezone.utc)
+            
             await conn.execute(
                 """
                 UPDATE fasting_sessions 
@@ -166,9 +172,9 @@ async def handle_snack_decision(session_id: str, payload: SnackDecision, user_id
                     planned_fast_end_time = $1 + (target_duration_hours * INTERVAL '1 hour')
                 WHERE id = $2 AND user_id = $3
                 """,
-                meal['meal_time'], session_id, user_id
+                aware_meal_time, session_id, user_id
             )
-            return {"id": session_id, "status": "active", "last_meal_time": meal['meal_time'], "message": "Fast restarted successfully"}
+            return {"id": session_id, "status": "active", "last_meal_time": aware_meal_time, "message": "Fast restarted successfully"}
         
         else:
             raise HTTPException(status_code=400, detail="Invalid decision")
