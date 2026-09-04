@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends
 from database import get_db_connection
 from dependencies import get_current_user
+from utils.scheduling import resolve_daily_plan
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
+
 
 @router.get("/dashboard")
 async def get_dashboard(user_id: str = Depends(get_current_user)):
@@ -29,10 +31,14 @@ async def get_dashboard(user_id: str = Depends(get_current_user)):
             WHERE user_id = $1 AND month = DATE_TRUNC('month', CURRENT_DATE)::DATE
         """, user_id)
 
+        # 4. Resolve the user's specific daily plan
+        today_plan = await resolve_daily_plan(conn, user_id)
+
         return {
             "current_session": dict(current_session) if current_session else None,
             "today_stats": dict(today_stats) if today_stats else {},
-            "month_stats": dict(month_stats) if month_stats else {}
+            "month_stats": dict(month_stats) if month_stats else {},
+            "today_plan": today_plan
         }
 
 from datetime import date
