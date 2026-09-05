@@ -116,7 +116,14 @@ async def get_monthly_analytics(month: str, user_id: str = Depends(get_current_u
         current_streak = streak_row['streak'] if streak_row else 0
 
         daily_query = """
-            SELECT id as session_id, session_date as date, actual_duration_hours as duration_hours, is_goal_met
+            SELECT 
+                id as session_id, 
+                session_date as date, 
+                actual_duration_hours as duration_hours, 
+                is_goal_met,
+                fast_start_time,          -- Added for Edit Modal
+                planned_fast_end_time,    -- Added for Edit Modal
+                notes                     -- Added for Edit Modal
             FROM fasting_sessions
             WHERE user_id = $1 AND TO_CHAR(session_date, 'YYYY-MM') = $2 AND status = 'completed'
             ORDER BY session_date ASC
