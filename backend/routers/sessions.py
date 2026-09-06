@@ -236,3 +236,34 @@ async def delete_session(session_id: str, user_id: str = Depends(get_current_use
         if result == "DELETE 0":
             raise HTTPException(status_code=404, detail="Session not found or not authorized")
         return {"status": "success", "message": "Session deleted"}
+
+class ManualSession(BaseModel):
+    last_meal_time: datetime
+    actual_fast_end_time: datetime
+    target_duration_hours: float = 16.0
+    notes: Optional[str] = None
+
+@router.post("/manual")
+async def log_manual_session(payload: ManualSession, user_id: str = Depends(get_current_user)):
+    async with get_db_connection() as conn:
+        # Calculate duration
+        start_utc = payload.last_meal_time.replace(tzinfo=timezone.utc)
+        end_utc = payload.actual_fast_end_time.replace(tzinfo=timezone.utc)
+        duration_hours = (end_utc - start_utc).total_seconds() / 3600
+
+        query = """
+            INSERT INTO fasting_sessions (
+                user_id, session_date, last_meal_time, fast_start_time, 
+                planned_fast_end_time, actual_fast_end_time, target_duration_hours, 
+                actual_duration_hours, status, is_goal_met, notes
+            ) VALUES (
+                $1, $2, $3::timestamptz, $3::timestamptz, 
+                $3::timestamptz + ($4::numeric * INTERVAL '1 hour'), $5::timestamptz,
+                $4::numeric, $6, 'completed', $6 >= $4, $7
+            ) RETURNING id
+        """
+        row = await conn.fetchrow(
+            query, user_id, end_utc.date(), start_utc, 
+            payload.target_duration_hours, end_utc, duration_hours, payload.notes
+        )
+        return dict(row)
