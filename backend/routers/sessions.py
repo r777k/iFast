@@ -225,3 +225,14 @@ async def update_session(session_id: str, payload: SessionUpdate, user_id: str =
             raise HTTPException(status_code=404, detail="Session not found")
             
         return dict(row)
+
+@router.delete("/{session_id}")
+async def delete_session(session_id: str, user_id: str = Depends(get_current_user)):
+    async with get_db_connection() as conn:
+        result = await conn.execute(
+            "DELETE FROM fasting_sessions WHERE id = $1 AND user_id = $2",
+            session_id, user_id
+        )
+        if result == "DELETE 0":
+            raise HTTPException(status_code=404, detail="Session not found or not authorized")
+        return {"status": "success", "message": "Session deleted"}
