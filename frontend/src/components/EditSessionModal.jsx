@@ -5,7 +5,6 @@ import { apiClient } from '../api/client';
 
 export default function EditSessionModal({ session, onClose, onRefresh }) {
   // Pre-populate fields if the session data exists.
-  // Note: HTML datetime-local inputs require the format "yyyy-MM-dd'T'HH:mm"
   const [lastMeal, setLastMeal] = useState(
     session?.fast_start_time ? format(parseISO(session.fast_start_time), "yyyy-MM-dd'T'HH:mm") : ''
   );
@@ -13,19 +12,24 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
     session?.planned_fast_end_time ? format(parseISO(session.planned_fast_end_time), "yyyy-MM-dd'T'HH:mm") : ''
   );
   const [notes, setNotes] = useState(session?.notes || '');
-  
-  // Explicitly required by the backend SessionUpdate model for the audit trail
   const [editReason, setEditReason] = useState(''); 
   const [loading, setLoading] = useState(false);
+
+  // Common reasons for the datalist
+  const commonReasons = [
+    "Forgot to tap start",
+    "Forgot to tap end",
+    "Logged late",
+    "Adjusted for timezone",
+    "Accidental start"
+  ];
 
   const handleLastMealChange = (e) => {
     const newStartStr = e.target.value;
     setLastMeal(newStartStr);
 
-    // Automatically shift the target time to maintain the target duration
     if (newStartStr && session?.target_duration_hours) {
       const newStartDate = new Date(newStartStr);
-      // Add the target hours to the new start time
       newStartDate.setMinutes(newStartDate.getMinutes() + (session.target_duration_hours * 60));
       setPlannedEnd(format(newStartDate, "yyyy-MM-dd'T'HH:mm"));
     }
@@ -41,7 +45,7 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
         notes: notes,
         edit_reason: editReason
       });
-      onRefresh(); // Refresh the History list
+      onRefresh(); 
       onClose();
     } catch (error) {
       console.error('Failed to update session:', error);
@@ -51,7 +55,7 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
     }
   };
 
-const handleDelete = async () => {
+  const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this session? This action cannot be undone.")) return;
     
     setLoading(true);
@@ -91,7 +95,7 @@ const handleDelete = async () => {
             <input
               type="datetime-local"
               value={lastMeal}
-              onChange={handleLastMealChange} // <-- Use the new handler here
+              onChange={handleLastMealChange}
               className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary dark:text-text-light bg-background dark:bg-background-dark"
             />
           </div>
@@ -108,9 +112,16 @@ const handleDelete = async () => {
 
           <div>
             <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Reason for Edit <span className="text-status-error">*</span></label>
+            {/* The hidden datalist powers the autocomplete */}
+            <datalist id="edit-reasons-options">
+              {commonReasons.map((reason, idx) => (
+                <option key={idx} value={reason} />
+              ))}
+            </datalist>
             <input
               type="text"
               required
+              list="edit-reasons-options"
               placeholder="e.g., Forgot to tap start, logged late"
               value={editReason}
               onChange={(e) => setEditReason(e.target.value)}

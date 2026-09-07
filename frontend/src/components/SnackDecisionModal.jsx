@@ -9,6 +9,15 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [decisionData, setDecisionData] = useState(null);
 
+  // Suggested snacks based on athletic preferences
+  const commonSnacks = [
+    "Run-Energy Gel",
+    "Run-Citrulline",
+    "Run-Banana",
+    "Evening snacks",
+    "Fruits"
+  ];
+
   // Step 1: Log the snack and fetch decision options
   const handleLogSnack = async (e) => {
     e.preventDefault();
@@ -19,7 +28,7 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
         meal_size: mealSize,
         description: notes
       });
-      setDecisionData(data); // Stores meal_id and decision_options
+      setDecisionData(data); 
       setStep(2);
     } catch (error) {
       console.error('Failed to log snack:', error);
@@ -33,11 +42,11 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
   const handleDecision = async (decisionId) => {
     setLoading(true);
     try {
-      await apiClient.post(`/fasting-sessions/${session.id}/handle-snack-decision`, {
+      await apiClient.patch(`/fasting-sessions/${session.id}/handle-snack-decision`, {
         decision: decisionId,
         meal_id: decisionData.meal_id
       });
-      onComplete(); // Refreshes the dashboard and closes the modal
+      onComplete(); 
     } catch (error) {
       console.error('Failed to process decision:', error);
       alert('Failed to process your decision.');
@@ -46,7 +55,6 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
     }
   };
 
-  // Icon mapping for the decision options
   const getDecisionIcon = (id) => {
     switch (id) {
       case 'restart': return <RefreshCw className="w-5 h-5 text-primary" />;
@@ -68,7 +76,6 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
         </button>
 
         {step === 1 ? (
-          /* --- STEP 1: WHAT DID YOU EAT? --- */
           <>
             <div className="mb-6 mt-2">
               <h3 className="text-xl font-bold text-text-primary dark:text-text-light">Log a Snack</h3>
@@ -98,10 +105,18 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
 
               <div>
                 <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Description (Optional)</label>
+                
+                <datalist id="snack-options">
+                  {commonSnacks.map((snack, idx) => (
+                    <option key={idx} value={snack} />
+                  ))}
+                </datalist>
+
                 <input
                   type="text"
                   autoFocus
-                  placeholder="e.g., Handful of almonds"
+                  list="snack-options"
+                  placeholder="e.g., Energy gel, Citrulline"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary dark:text-text-light bg-background dark:bg-background-dark"
@@ -118,7 +133,6 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
             </form>
           </>
         ) : (
-          /* --- STEP 2: DECISION TREE --- */
           <>
             <div className="mb-6 mt-2">
               <h3 className="text-xl font-bold text-text-primary dark:text-text-light">Snack Logged</h3>
