@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Bell, Calendar, Clock } from 'lucide-react';
 import { apiClient } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { logout } = useAuth();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteValidation, setDeleteValidation] = useState('');
   
   // 1. Fasting Rules State (Matched to RulesUpdate schema)
   const [rules, setRules] = useState({
@@ -105,6 +109,18 @@ export default function Settings() {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePurgeData = async () => {
+    if (deleteValidation !== 'DELETE') return;
+    try {
+      await apiClient.delete('/settings/me/purge');
+      alert('Your data has been permanently deleted.');
+      logout(); // Kick them out instantly
+    } catch (error) {
+      console.error('Failed to delete data:', error);
+      alert('Failed to process deletion request.');
     }
   };
 
@@ -265,6 +281,40 @@ export default function Settings() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="bg-status-error/5 p-6 rounded-xl border border-status-error/20 mt-8">
+        <h3 className="text-lg font-bold text-status-error mb-2">Danger Zone</h3>
+        <p className="text-sm text-text-secondary mb-4">Permanently delete your account and all telemetry. This cannot be undone.</p>
+        
+        {!showDeleteConfirm ? (
+          <button 
+            onClick={() => setShowDeleteConfirm(true)}
+            className="bg-status-error hover:bg-red-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors"
+          >
+            Delete All My Data
+          </button>
+        ) : (
+          <div className="space-y-3 p-4 bg-white dark:bg-surface-dark border border-status-error/30 rounded-lg">
+            <label className="block text-sm font-medium">Type <span className="font-mono font-bold text-status-error">DELETE</span> to confirm</label>
+            <div className="flex gap-3">
+              <input 
+                type="text" 
+                value={deleteValidation}
+                onChange={(e) => setDeleteValidation(e.target.value)}
+                className="flex-1 px-4 py-2 rounded-lg border border-border bg-background"
+                placeholder="DELETE"
+              />
+              <button 
+                onClick={handlePurgeData}
+                disabled={deleteValidation !== 'DELETE'}
+                className="bg-status-error hover:bg-red-700 text-white font-medium px-6 py-2 rounded-lg disabled:opacity-50"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Mobile Floating Save Button */}
