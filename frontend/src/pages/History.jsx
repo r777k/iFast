@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { format, subMonths, addMonths } from 'date-fns';
+import { parseISO, format, subMonths, addMonths, startOfMonth, endOfMonth, getDaysInMonth, getDay, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight, Award, Clock, Calendar as CalendarIcon, Flame } from 'lucide-react';
 import { apiClient } from '../api/client';
 import EditSessionModal from '../components/EditSessionModal';
-import { startOfMonth, endOfMonth, getDaysInMonth, getDay, isSameDay } from 'date-fns';
 import LogPastFastModal from '../components/LogPastFastModal';
 
 export default function History() {
@@ -18,7 +17,6 @@ export default function History() {
     setLoading(true);
     try {
       const monthString = format(date, 'yyyy-MM');
-      // Fetches the monthly_fasting_stats aggregation and daily breakdown
       const response = await apiClient.get(`/analytics/monthly?month=${monthString}`);
       setData(response.data);
     } catch (error) {
@@ -35,7 +33,6 @@ export default function History() {
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
-  // Translates the backend metrics into our UI Spec cards
   const summaryCards = [
     { label: "Avg Duration", value: `${data.metrics?.average_duration_hours || 0}h`, icon: Clock },
     { label: "Completed", value: `${data.metrics?.completed_fasts || 0}`, icon: Award },
@@ -76,22 +73,22 @@ export default function History() {
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day}>{day}</div>)}
         </div>
         <div className="grid grid-cols-7 gap-1">
-          {/* Pad empty days at the start of the month */}
           {Array.from({ length: getDay(startOfMonth(currentMonth)) }).map((_, i) => (
             <div key={`empty-${i}`} className="h-14 bg-transparent" />
           ))}
           
-          {/* Render actual days */}
           {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, i) => {
             const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
-            const session = data.daily_summary.find(s => isSameDay(new Date(s.date), date));
             
-            let badgeColor = 'bg-gray-100 dark:bg-gray-800'; // No fast logged
+            // FIX: Using fast_start_time parsed dynamically for local timezone accuracy
+            const session = data.daily_summary.find(s => s.fast_start_time && isSameDay(parseISO(s.fast_start_time), date));
+            
+            let badgeColor = 'bg-gray-100 dark:bg-gray-800'; 
             if (session) {
-              if (session.duration_hours < 12) badgeColor = 'bg-primary/30 text-primary-active'; // Light teal
-              else if (session.duration_hours < 16) badgeColor = 'bg-primary text-surface'; // Teal
-              else if (session.duration_hours < 20) badgeColor = 'bg-primary-active text-surface'; // Dark teal
-              else badgeColor = 'bg-status-warning text-surface'; // Gold (20h+)
+              if (session.duration_hours < 12) badgeColor = 'bg-primary/30 text-primary-active'; 
+              else if (session.duration_hours < 16) badgeColor = 'bg-primary text-surface'; 
+              else if (session.duration_hours < 20) badgeColor = 'bg-primary-active text-surface'; 
+              else badgeColor = 'bg-status-warning text-surface'; 
             }
 
             return (
@@ -119,8 +116,6 @@ export default function History() {
 
       {/* High-Density Data List */}
       <div className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark overflow-hidden">
-
-        {/* REPLACED THIS HEADER SECTION */}
         <div className="flex justify-between items-center p-4 border-b border-border dark:border-border-dark bg-gray-50 dark:bg-gray-800/50">
           <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Fasting Log</h3>
           <button 
@@ -143,37 +138,43 @@ export default function History() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {data.daily_summary.map((session) => (
-              <div 
-                key={session.session_id} 
-                onClick={() => {
-                  setSelectedSession(session);
-                  setIsEditModalOpen(true);
-                }}
-                className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
-              >
+            {data.daily_summary.map((session) => {
+              // FIX: Dynamically parsing the UTC timestamp into a local date string
+              const actualLocalDay = session.fast_start_time 
+                ? format(parseISO(session.fast_start_time), 'MMM dd, yyyy')
+                : format(new Date(session.date), 'MMM dd, yyyy');
 
-                <div className="flex items-center gap-4">
-                  <div className={`w-2 h-10 rounded-full ${session.is_goal_met ? 'bg-primary' : 'bg-status-warning'}`} />
-                  <div>
-                    <p className="text-text-primary dark:text-text-light font-semibold">
-                      {format(new Date(session.date), 'MMM dd, yyyy')}
+              return (
+                <div 
+                  key={session.session_id} 
+                  onClick={() => {
+                    setSelectedSession(session);
+                    setIsEditModalOpen(true);
+                  }}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`w-2 h-10 rounded-full ${session.is_goal_met ? 'bg-primary' : 'bg-status-warning'}`} />
+                    <div>
+                      <p className="text-text-primary dark:text-text-light font-semibold">
+                        {actualLocalDay}
+                      </p>
+                      <p className="text-xs text-text-secondary mt-0.5">
+                        {session.is_goal_met ? 'Goal Met' : 'Ended Early'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-text-primary dark:text-text-light font-mono">
+                      {session.duration_hours.toFixed(1)}h
                     </p>
-                    <p className="text-xs text-text-secondary mt-0.5">
-                      {session.is_goal_met ? 'Goal Met' : 'Ended Early'}
-                    </p>
+                    <button className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                      Edit Session
+                    </button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-text-primary dark:text-text-light font-mono">
-                    {session.duration_hours.toFixed(1)}h
-                  </p>
-                  <button className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-                    Edit Session
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {isEditModalOpen && selectedSession && (
@@ -186,7 +187,6 @@ export default function History() {
             onRefresh={() => fetchMonthData(currentMonth)}
           />
         )}
-        {/* NEW Manual Log Modal */}
         {isManualModalOpen && (
           <LogPastFastModal 
             onClose={() => setIsManualModalOpen(false)}
