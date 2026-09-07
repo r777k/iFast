@@ -46,13 +46,14 @@ async def log_meal(payload: MealCreate, user_id: str = Depends(get_current_user)
                 break_fast_query = """
                     UPDATE fasting_sessions
                     SET status = 'broken',
-                        actual_fast_end_time = $2::timestamptz,
-                        actual_duration_hours = EXTRACT(EPOCH FROM ($2::timestamptz - fast_start_time)) / 3600,
+                        actual_fast_end_time = $3::timestamptz,
+                        actual_duration_hours = EXTRACT(EPOCH FROM ($3::timestamptz - fast_start_time)) / 3600,
                         is_goal_met = false,
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE id = $1
+                    WHERE id = $1 AND user_id = $2
                 """
-                await conn.execute(break_fast_query, target_session_id, payload.meal_time)
+                # FIX: Added target_session_id AND user_id parameters
+                await conn.execute(break_fast_query, target_session_id, user_id, payload.meal_time)
                 fast_broken = True
 
         # 3. Insert the meal record using timezone-aware casting (::timestamptz)

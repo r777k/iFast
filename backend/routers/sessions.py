@@ -136,48 +136,45 @@ async def handle_snack_decision(session_id: str, payload: SnackDecision, user_id
         if payload.decision == "ignore":
             return {"id": session_id, "status": "active", "message": "Snack ignored, fast continues"}
             
-        elif payload.decision == "end":
-            # Fetch the meal time to use as the end time
-            meal = await conn.fetchrow("SELECT meal_time FROM meals WHERE id = $1", payload.meal_id)
+        elif payload.decision in ["end", "restart"]:
+            # FIX: Ensure the meal belongs to the authenticated user
+            meal = await conn.fetchrow(
+                "SELECT meal_time FROM meals WHERE id = $1 AND user_id = $2", 
+                payload.meal_id, user_id
+            )
             if not meal:
-                raise HTTPException(status_code=404, detail="Meal record not found")
+                raise HTTPException(status_code=404, detail="Meal record not found or not authorized")
 				            
-            # Convert the naive db timestamp to aware UTC so asyncpg can encode it for timestamptz columns
             aware_meal_time = meal['meal_time'].replace(tzinfo=timezone.utc)
             
-            await conn.execute(
-                """
-                UPDATE fasting_sessions 
-                SET actual_fast_end_time = $1, 
-                    actual_duration_hours = EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600,
-                    status = 'completed',
-                    is_goal_met = (EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600) >= target_duration_hours
-                WHERE id = $2 AND user_id = $3
-                """,
-                aware_meal_time, session_id, user_id
-            )
-            return {"id": session_id, "status": "completed", "message": "Fast ended at snack time"}
-            
-        elif payload.decision == "restart":
-            meal = await conn.fetchrow("SELECT meal_time FROM meals WHERE id = $1", payload.meal_id)
-            
-            # Convert to aware UTC
-            aware_meal_time = meal['meal_time'].replace(tzinfo=timezone.utc)
-            
-            await conn.execute(
-                """
-                UPDATE fasting_sessions 
-                SET last_meal_time = $1::timestamptz,
-                    fast_start_time = $1::timestamptz,
-                    planned_fast_end_time = $1::timestamptz + (target_duration_hours * INTERVAL '1 hour')
-                WHERE id = $2 AND user_id = $3
-                """,
-                aware_meal_time, session_id, user_id
-            )
-            return {"id": session_id, "status": "active", "last_meal_time": aware_meal_time, "message": "Fast restarted successfully"}        
+            if payload.decision == "end":
+                await conn.execute(
+                    """
+                    UPDATE fasting_sessions 
+                    SET actual_fast_end_time = $1, 
+                        actual_duration_hours = EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600,
+                        status = 'completed',
+                        is_goal_met = (EXTRACT(EPOCH FROM ($1 - fast_start_time)) / 3600) >= target_duration_hours
+                    WHERE id = $2 AND user_id = $3
+                    """,
+                    aware_meal_time, session_id, user_id
+                )
+                return {"id": session_id, "status": "completed", "message": "Fast ended at snack time"}
+                
+            elif payload.decision == "restart":
+                await conn.execute(
+                    """
+                    UPDATE fasting_sessions 
+                    SET last_meal_time = $1::timestamptz,
+                        fast_start_time = $1::timestamptz,
+                        planned_fast_end_time = $1::timestamptz + (target_duration_hours * INTERVAL '1 hour')
+                    WHERE id = $2 AND user_id = $3
+                    """,
+                    aware_meal_time, session_id, user_id
+                )
+                return {"id": session_id, "status": "active", "last_meal_time": aware_meal_time, "message": "Fast restarted successfully"}        
         else:
             raise HTTPException(status_code=400, detail="Invalid decision")
-
 
 # Append to routers/sessions.py
 
