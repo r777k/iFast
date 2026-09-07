@@ -22,6 +22,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('access_token');
     setIsAuthenticated(false);
+    // Force a hard reload to wipe all React state from memory
+    window.location.href = '/login';     
   };
 
   return (
