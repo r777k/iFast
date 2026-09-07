@@ -4,7 +4,7 @@ import { Clock, Target, ArrowRight, Edit2 } from 'lucide-react';
 export default function CurrentSessionCard({ 
   status = 'fasting', // 'fasting', 'eating', 'unplanned'
   elapsedTime = '8h 32m',
-  progressPercent = 53, // e.g., 8.5 hours into a 16 hour fast
+  progressPercent = 53,
   currentPhase = 'Fat Burning',
   lastMealTime = '2:30 PM',
   fastTargetTime = '4:30 PM',
@@ -12,11 +12,14 @@ export default function CurrentSessionCard({
   onEdit
 }) {
   
+  // 1. Determine if we should show dummy data or zeroes
+  const isUnplanned = status === 'unplanned';
+  const safeProgress = isUnplanned ? 0 : progressPercent;
+  
   // SVG Circle Math
   const circleRadius = 90;
   const circumference = 2 * Math.PI * circleRadius;
-  // Offset controls how much of the ring is empty/transparent
-  const strokeDashoffset = circumference - (circumference * progressPercent) / 100;
+  const strokeDashoffset = circumference - (circumference * safeProgress) / 100;
 
   // Status configuration mapping
   const statusConfig = {
@@ -66,10 +69,10 @@ export default function CurrentSessionCard({
         {/* Center Text inside Timer */}
         <div className="absolute flex flex-col items-center justify-center text-center">
           <span className="text-text-secondary dark:text-gray-400 text-sm font-medium mb-1">
-            {progressPercent}% • {currentPhase}
+            {isUnplanned ? '0%' : `${safeProgress}%`} • {isUnplanned ? 'Waiting' : currentPhase}
           </span>
           <span className="text-4xl font-bold text-text-primary dark:text-text-light font-mono tracking-tight">
-            {elapsedTime}
+            {isUnplanned ? '0h 0m' : elapsedTime}
           </span>
         </div>
       </div>
@@ -77,10 +80,11 @@ export default function CurrentSessionCard({
       {/* 3. Phase Indicator Bar */}
       <div className="w-full mb-8">
         <div className="flex h-2 w-full rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 mb-2">
-          <div className="h-full bg-primary/40 w-1/4" title="Ramp-up (0-25%)" />
-          <div className="h-full bg-primary w-2/4" title="Fat Burning (25-75%)" />
-          <div className="h-full bg-primary-active w-1/4" title="Deep Fast (75-100%)" />
-          {progressPercent > 100 && (
+          {/* Mute the phase colors if unplanned */}
+          <div className={`h-full ${isUnplanned ? 'bg-transparent' : 'bg-primary/40'} w-1/4`} title="Ramp-up (0-25%)" />
+          <div className={`h-full ${isUnplanned ? 'bg-transparent' : 'bg-primary'} w-2/4`} title="Fat Burning (25-75%)" />
+          <div className={`h-full ${isUnplanned ? 'bg-transparent' : 'bg-primary-active'} w-1/4`} title="Deep Fast (75-100%)" />
+          {safeProgress > 100 && (
             <div className="h-full bg-status-warning w-1/4" title="Extended (100%+)" />
           )}
         </div>
@@ -97,8 +101,10 @@ export default function CurrentSessionCard({
           <Clock className="w-4 h-4 text-text-secondary mb-1" />
           <span className="text-xs text-text-secondary mb-1">Last Meal</span>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary dark:text-text-light font-mono">{lastMealTime}</span>
-            {onEdit && (
+            <span className="text-sm font-semibold text-text-primary dark:text-text-light font-mono">
+              {isUnplanned ? '--:--' : lastMealTime}
+            </span>
+            {!isUnplanned && onEdit && (
               <button onClick={onEdit} className="text-text-secondary hover:text-primary transition-colors">
                 <Edit2 className="w-3 h-3" />
               </button>
@@ -109,8 +115,10 @@ export default function CurrentSessionCard({
           <Target className="w-4 h-4 text-text-secondary mb-1" />
           <span className="text-xs text-text-secondary mb-1">Target</span>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary dark:text-text-light font-mono">{fastTargetTime}</span>
-            {onEdit && (
+            <span className="text-sm font-semibold text-text-primary dark:text-text-light font-mono">
+              {isUnplanned ? '--:--' : fastTargetTime}
+            </span>
+            {!isUnplanned && onEdit && (
               <button onClick={onEdit} className="text-text-secondary hover:text-primary transition-colors">
                 <Edit2 className="w-3 h-3" />
               </button>
@@ -120,7 +128,9 @@ export default function CurrentSessionCard({
         <div className="flex flex-col items-center">
           <ArrowRight className="w-4 h-4 text-text-secondary mb-1" />
           <span className="text-xs text-text-secondary mb-1">Remaining</span>
-          <span className="text-sm font-semibold text-text-primary dark:text-text-light font-mono">{remainingTime}</span>
+          <span className="text-sm font-semibold text-text-primary dark:text-text-light font-mono">
+            {isUnplanned ? '--:--' : remainingTime}
+          </span>
         </div>
       </div>
 
