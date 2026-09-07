@@ -264,3 +264,19 @@ async def log_manual_session(payload: ManualSession, user_id: str = Depends(get_
             payload.target_duration_hours, end_utc, duration_hours, payload.notes
         )
         return dict(row)
+
+
+
+@router.delete("/me/purge")
+async def purge_user_data(user_id: str = Depends(get_current_user)):
+    async with get_db_connection() as conn:
+        async with conn.transaction():
+            # Manually clear related tables to be safe before dropping the user
+            await conn.execute("DELETE FROM meals WHERE user_id = $1", user_id)
+            await conn.execute("DELETE FROM fasting_sessions WHERE user_id = $1", user_id)
+            await conn.execute("DELETE FROM fasting_plans WHERE user_id = $1", user_id)
+            await conn.execute("DELETE FROM notification_settings WHERE user_id = $1", user_id)
+            
+            await conn.execute("DELETE FROM users WHERE id = $1", user_id)
+            
+    return {"status": "success", "message": "All data permanently deleted"}
