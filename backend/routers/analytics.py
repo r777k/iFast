@@ -121,9 +121,10 @@ async def get_monthly_analytics(month: str, user_id: str = Depends(get_current_u
                 session_date as date, 
                 actual_duration_hours as duration_hours, 
                 is_goal_met,
-                fast_start_time,          -- Added for Edit Modal
-                planned_fast_end_time,    -- Added for Edit Modal
-                notes                     -- Added for Edit Modal
+                fast_start_time,          
+                planned_fast_end_time,    
+                actual_fast_end_time,     -- ADD THIS LINE
+                notes                     
             FROM fasting_sessions
             WHERE user_id = $1 AND TO_CHAR(session_date, 'YYYY-MM') = $2 AND status = 'completed'
             ORDER BY session_date ASC
@@ -192,4 +193,38 @@ async def get_fasting_patterns(user_id: str = Depends(get_current_user)):
                 "most_common_hour": break_fast_dist[0]['hour'] if break_fast_dist else None,
                 "most_common_time": f"{break_fast_dist[0]['hour']:02d}:00" if break_fast_dist else None
             }
+        }
+
+@router.get("/user-options")
+async def get_user_options(user_id: str = Depends(get_current_user)):
+    async with get_db_connection() as conn:
+        # Fetch unique notes and reasons from fasting_sessions
+        sessions_data = await conn.fetch("""
+            SELECT DISTINCT notes, edit_reason 
+            FROM fasting_sessions 
+            WHERE user_id = $1 AND (notes IS NOT NULL OR edit_reason IS NOT NULL)
+        """, user_id)
+        
+        # Fetch unique descriptions from meals
+        meals_data = await conn.fetch("""
+            SELECT DISTINCT description 
+            FROM meals 
+            WHERE user_id = $1 AND description IS NOT NULL
+        """, user_id)
+        
+        notes = set()
+        reasons = set()
+        descriptions = set()
+        
+        for row in sessions_data:
+            if row['notes']: notes.add(row['notes'])
+            if row['edit_reason']: reasons.add(row['edit_reason'])
+            
+        for row in meals_data:
+            if row['description']: descriptions.add(row['description'])
+            
+        return {
+            "notes": list(notes),
+            "edit_reasons": list(reasons),
+            "meal_descriptions": list(descriptions)
         }
