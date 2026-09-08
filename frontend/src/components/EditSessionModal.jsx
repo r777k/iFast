@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { apiClient } from '../api/client';
@@ -15,14 +15,18 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
   const [editReason, setEditReason] = useState(''); 
   const [loading, setLoading] = useState(false);
 
-  // Common reasons for the datalist
-  const commonReasons = [
-    "Forgot to tap start",
-    "Forgot to tap end",
-    "Logged late",
-    "Adjusted for timezone",
-    "Accidental start"
-  ];
+  const [options, setOptions] = useState({ notes: [], edit_reasons: [] });
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const { data } = await apiClient.get('/analytics/user-options');
+        setOptions(data);
+      } catch (error) {
+        console.error("Failed to fetch autocomplete options", error);
+      }
+    };
+    fetchOptions();
+  }, []);
 
   const handleLastMealChange = (e) => {
     const newStartStr = e.target.value;
@@ -114,10 +118,16 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
             <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Reason for Edit <span className="text-status-error">*</span></label>
             {/* The hidden datalist powers the autocomplete */}
             <datalist id="edit-reasons-options">
-              {commonReasons.map((reason, idx) => (
-                <option key={idx} value={reason} />
-              ))}
-            </datalist>
+                {options.edit_reasons.map((reason, idx) => (
+                  <option key={idx} value={reason} />
+                ))}
+              </datalist>
+            
+              <datalist id="edit-notes-options">
+                {options.notes.map((note, idx) => (
+                  <option key={idx} value={note} />
+                ))}
+              </datalist>
             <input
               type="text"
               required

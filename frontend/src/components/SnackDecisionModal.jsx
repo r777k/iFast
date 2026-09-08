@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { X, RefreshCw, Play, Square } from 'lucide-react';
 import { apiClient } from '../api/client';
 
@@ -8,15 +8,19 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
   const [mealSize, setMealSize] = useState('small');
   const [loading, setLoading] = useState(false);
   const [decisionData, setDecisionData] = useState(null);
+  const [options, setOptions] = useState({ meal_descriptions: [] });
 
-  // Suggested snacks based on athletic preferences
-  const commonSnacks = [
-    "Run-Energy Gel",
-    "Run-Citrulline",
-    "Run-Banana",
-    "Evening snacks",
-    "Fruits"
-  ];
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const { data } = await apiClient.get('/analytics/user-options');
+        setOptions(data);
+      } catch (error) {
+        console.error("Failed to fetch autocomplete options", error);
+      }
+    };
+    fetchOptions();
+  }, []);
 
   // Step 1: Log the snack and fetch decision options
   const handleLogSnack = async (e) => {
@@ -107,7 +111,7 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
                 <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Description (Optional)</label>
                 
                 <datalist id="snack-options">
-                  {commonSnacks.map((snack, idx) => (
+                  {options.meal_descriptions.map((snack, idx) => (
                     <option key={idx} value={snack} />
                   ))}
                 </datalist>
