@@ -14,6 +14,9 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
   const [notes, setNotes] = useState(session?.notes || '');
   const [editReason, setEditReason] = useState(''); 
   const [loading, setLoading] = useState(false);
+  const [actualEnd, setActualEnd] = useState(
+    session?.actual_fast_end_time ? format(parseISO(session.actual_fast_end_time), "yyyy-MM-dd'T'HH:mm") : ''
+  );
 
   const [options, setOptions] = useState({ notes: [], edit_reasons: [] });
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
       await apiClient.patch(`/fasting-sessions/${session.session_id}`, {
         last_meal_time: lastMeal ? new Date(lastMeal).toISOString() : null,
         planned_fast_end_time: plannedEnd ? new Date(plannedEnd).toISOString() : null,
+        actual_fast_end_time: actualEnd ? new Date(actualEnd).toISOString() : null, // NEW
         notes: notes,
         edit_reason: editReason
       });
@@ -113,7 +117,17 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
               className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary dark:text-text-light bg-background dark:bg-background-dark"
             />
           </div>
-
+          {session.status === 'completed' && (
+            <div>
+              <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Actual Fast End</label>
+              <input
+                type="datetime-local"
+                value={actualEnd}
+                onChange={(e) => setActualEnd(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary dark:text-text-light bg-background dark:bg-background-dark"
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Reason for Edit <span className="text-status-error">*</span></label>
             {/* The hidden datalist powers the autocomplete */}
@@ -121,13 +135,13 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
                 {options.edit_reasons.map((reason, idx) => (
                   <option key={idx} value={reason} />
                 ))}
-              </datalist>
+            </datalist>
             
-              <datalist id="edit-notes-options">
+            <datalist id="edit-notes-options">
                 {options.notes.map((note, idx) => (
                   <option key={idx} value={note} />
                 ))}
-              </datalist>
+            </datalist>
             <input
               type="text"
               required
