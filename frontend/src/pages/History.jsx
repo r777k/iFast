@@ -34,11 +34,24 @@ export default function History() {
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
   const summaryCards = [
-    { label: "Avg Duration", value: `${data.metrics?.average_duration_hours || 0}h`, icon: Clock },
+    { label: "Avg Duration", value: formatDuration(data.metrics?.average_duration_hours), icon: Clock },
     { label: "Completed", value: `${data.metrics?.completed_fasts || 0}`, icon: Award },
     { label: "Longest", value: `${data.metrics?.longest_duration_hours || 0}h`, icon: CalendarIcon },
     { label: "Streak", value: `${data.metrics?.current_streak || 0} days`, icon: Flame },
   ];
+
+  const formatDuration = (decimalHours) => {
+    if (!decimalHours) return '00:00';
+    const totalMins = Math.round(decimalHours * 60);
+   const d = Math.floor(totalMins / (24 * 60));
+   const h = Math.floor((totalMins % (24 * 60)) / 60);
+    const m = totalMins % 60;
+  
+    const pad = (num) => num.toString().padStart(2, '0');
+  
+    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
+    return `${pad(h)}:${pad(m)}`;
+  };
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-4xl mx-auto pb-24">
@@ -105,7 +118,7 @@ export default function History() {
                 <span className="text-xs text-text-secondary font-medium">{i + 1}</span>
                 {session && (
                   <div className={`absolute bottom-1 left-1 right-1 text-center rounded text-[10px] font-bold ${badgeColor}`}>
-                    {session.duration_hours.toFixed(1)}h
+                    {formatDuration(session.duration_hours)}
                   </div>
                 )}
               </div>
@@ -166,7 +179,7 @@ export default function History() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-text-primary dark:text-text-light font-mono">
-                      {session.duration_hours.toFixed(1)}h
+                      {formatDuration(session.duration_hours)}
                     </p>
                     <button className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
                       Edit Session
