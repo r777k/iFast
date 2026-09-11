@@ -181,23 +181,37 @@ async def handle_snack_decision(session_id: str, payload: SnackDecision, user_id
 class SessionUpdate(BaseModel):
     last_meal_time: Optional[datetime] = None
     planned_fast_end_time: Optional[datetime] = None
+    actual_fast_end_time: Optional[datetime] = None  # NEW
     notes: Optional[str] = None
-    edit_reason: str  # Required to build the audit trail
+    edit_reason: str
 
 @router.patch("/{session_id}")
 async def update_session(session_id: str, payload: SessionUpdate, user_id: str = Depends(get_current_user)):
     async with get_db_connection() as conn:
-        # Dynamically build the update query based on provided fields
+        # 1. Fetch current session to calculate safe durations
+        current = await conn.fetchrow("SELECT * FROM fasting_sessions WHERE id = $1 AND user_id = $2", session_id, user_id)
+        if not current:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # 2. Determine new timestamps
+        new_start = payload.last_meal_time.replace(tzinfo=timezone.utc) if payload.last_meal_time else current['fast_start_time']
+        new_end = payload.actual_fast_end_time.replace(tzinfo=timezone.utc) if payload.actual_fast_end_time else current['actual_fast_end_time']
+        
+        # 3. Build dynamic updates
         updates = []
         values = [session_id, user_id, payload.edit_reason]
         
         if payload.last_meal_time:
-            values.append(payload.last_meal_time)
+            values.append(new_start)
             updates.append(f"last_meal_time = ${len(values)}, fast_start_time = ${len(values)}")
             
         if payload.planned_fast_end_time:
-            values.append(payload.planned_fast_end_time)
+            values.append(payload.planned_fast_end_time.replace(tzinfo=timezone.utc))
             updates.append(f"planned_fast_end_time = ${len(values)}")
+
+        if payload.actual_fast_end_time:
+            values.append(new_end)
+            updates.append(f"actual_fast_end_time = ${len(values)}")
             
         if payload.notes:
             values.append(payload.notes)
@@ -206,21 +220,23 @@ async def update_session(session_id: str, payload: SessionUpdate, user_id: str =
         if not updates:
             raise HTTPException(status_code=400, detail="No fields provided to update")
             
-        updates.append("was_edited = true")
-        updates.append("edit_reason = $3")
-        updates.append("updated_at = CURRENT_TIMESTAMP")
+        # 4. If start or actual end changed, recalculate the duration and goal status
+        if payload.last_meal_time or payload.actual_fast_end_time:
+            if new_end: # Only calculate if the fast actually has an end time
+                duration_hours = (new_end - new_start).total_seconds() / 3600
+                values.append(duration_hours)
+                updates.append(f"actual_duration_hours = ${len(values)}")
+                updates.append(f"is_goal_met = ${len(values)} >= target_duration_hours")
+
+        updates.extend(["was_edited = true", "edit_reason = $3", "updated_at = CURRENT_TIMESTAMP"])
         
         query = f"""
             UPDATE fasting_sessions 
             SET {', '.join(updates)}
             WHERE id = $1 AND user_id = $2
-            RETURNING id, last_meal_time, planned_fast_end_time, notes, was_edited, edit_reason, updated_at
+            RETURNING *
         """
-        
         row = await conn.fetchrow(query, *values)
-        if not row:
-            raise HTTPException(status_code=404, detail="Session not found")
-            
         return dict(row)
 
 @router.delete("/{session_id}")
