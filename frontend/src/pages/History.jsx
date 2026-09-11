@@ -26,6 +26,19 @@ export default function History() {
     }
   };
 
+  const formatDuration = (decimalHours) => {
+    if (!decimalHours) return '00:00';
+    const totalMins = Math.round(decimalHours * 60);
+   const d = Math.floor(totalMins / (24 * 60));
+   const h = Math.floor((totalMins % (24 * 60)) / 60);
+    const m = totalMins % 60;
+  
+    const pad = (num) => num.toString().padStart(2, '0');
+  
+    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
+    return `${pad(h)}:${pad(m)}`;
+  };
+
   useEffect(() => {
     fetchMonthData(currentMonth);
   }, [currentMonth]);
@@ -40,18 +53,7 @@ export default function History() {
     { label: "Streak", value: `${data.metrics?.current_streak || 0} days`, icon: Flame },
   ];
 
-  const formatDuration = (decimalHours) => {
-    if (!decimalHours) return '00:00';
-    const totalMins = Math.round(decimalHours * 60);
-   const d = Math.floor(totalMins / (24 * 60));
-   const h = Math.floor((totalMins % (24 * 60)) / 60);
-    const m = totalMins % 60;
-  
-    const pad = (num) => num.toString().padStart(2, '0');
-  
-    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
-    return `${pad(h)}:${pad(m)}`;
-  };
+
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-4xl mx-auto pb-24">
