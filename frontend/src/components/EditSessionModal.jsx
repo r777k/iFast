@@ -117,7 +117,7 @@ export default function EditSessionModal({ session, onClose, onRefresh }) {
               className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-text-primary dark:text-text-light bg-background dark:bg-background-dark"
             />
           </div>
-          {session.status === 'completed' && (
+          {session.status !== 'active' && (
             <div>
               <label className="block text-sm font-medium text-text-primary dark:text-text-light mb-1">Actual Fast End</label>
               <input
