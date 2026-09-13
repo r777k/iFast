@@ -228,3 +228,9 @@ async def get_user_options(user_id: str = Depends(get_current_user)):
             "edit_reasons": list(reasons),
             "meal_descriptions": list(descriptions)
         }
+
+@router.get("/fasting-stages")
+async def get_fasting_stages():
+    async with get_db_connection() as conn:
+        rows = await conn.fetch("SELECT * FROM fasting_stages ORDER BY stage_number ASC")
+        return [dict(row) for row in rows]
