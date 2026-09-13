@@ -42,11 +42,12 @@ export default function SnackDecisionModal({ session, onClose, onComplete }) {
     }
   };
 
-  // Step 2: Submit the user's decision
+// Step 2: Submit the user's decision
   const handleDecision = async (decisionId) => {
     setLoading(true);
     try {
-      await apiClient.patch(`/fasting-sessions/${session.id}/handle-snack-decision`, {
+      // CHANGE THIS FROM .patch TO .post
+      await apiClient.post(`/fasting-sessions/${session.id}/handle-snack-decision`, {
         decision: decisionId,
         meal_id: decisionData.meal_id
       });
