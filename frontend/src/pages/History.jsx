@@ -26,25 +26,32 @@ export default function History() {
     }
   };
 
-  const formatDuration = (decimalHours) => {
-    if (!decimalHours) return '00:00';
-    const totalMins = Math.round(decimalHours * 60);
-   const d = Math.floor(totalMins / (24 * 60));
-   const h = Math.floor((totalMins % (24 * 60)) / 60);
-    const m = totalMins % 60;
-  
-    const pad = (num) => num.toString().padStart(2, '0');
-  
-    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
-    return `${pad(h)}:${pad(m)}`;
-  };
-
   useEffect(() => {
     fetchMonthData(currentMonth);
   }, [currentMonth]);
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+
+  const formatDuration = (decimalHours) => {
+    if (!decimalHours) return '00:00';
+    const totalMins = Math.round(decimalHours * 60);
+    const d = Math.floor(totalMins / (24 * 60));
+    const h = Math.floor((totalMins % (24 * 60)) / 60);
+    const m = totalMins % 60;
+    const pad = (num) => num.toString().padStart(2, '0');
+    if (d > 0) return `${d}d ${pad(h)}:${pad(m)}`;
+    return `${pad(h)}:${pad(m)}`;
+  };
+
+  // NEW: Badge Generator Function
+  const getBadges = (hours) => {
+    const badges = [];
+    if (hours >= 16) badges.push({ text: 'F', bg: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600', title: 'Metabolic Switch (16h+)' });
+    if (hours >= 24) badges.push({ text: 'K', bg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600', title: 'Ketosis (24h+)' });
+    if (hours >= 48) badges.push({ text: 'A', bg: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600', title: 'Autophagy (48h+)' });
+    return badges;
+  };
 
   const summaryCards = [
     { label: "Avg Duration", value: formatDuration(data.metrics?.average_duration_hours), icon: Clock },
@@ -53,12 +60,9 @@ export default function History() {
     { label: "Streak", value: `${data.metrics?.current_streak || 0} days`, icon: Flame },
   ];
 
-
-
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-4xl mx-auto pb-24">
-      
-      {/* Header & Month Selector */}
+      {/* Header & Stats Summary remain the same */}
       <header className="flex justify-between items-center bg-surface dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border dark:border-border-dark">
         <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
@@ -71,7 +75,6 @@ export default function History() {
         </button>
       </header>
 
-      {/* Stats Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {summaryCards.map((card, idx) => (
           <div key={idx} className="bg-surface dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border dark:border-border-dark flex flex-col items-center justify-center text-center">
@@ -94,8 +97,6 @@ export default function History() {
           
           {Array.from({ length: getDaysInMonth(currentMonth) }).map((_, i) => {
             const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
-            
-            // FIX: Using fast_start_time parsed dynamically for local timezone accuracy
             const session = data.daily_summary.find(s => s.fast_start_time && isSameDay(parseISO(s.fast_start_time), date));
             
             let badgeColor = 'bg-gray-100 dark:bg-gray-800'; 
@@ -115,11 +116,23 @@ export default function History() {
                     setIsEditModalOpen(true);
                   }
                 }}
-                className="h-14 border border-border dark:border-border-dark rounded-md p-1 flex flex-col items-end cursor-pointer hover:border-primary transition-colors relative"
+                className="h-14 border border-border dark:border-border-dark rounded-md p-1 flex flex-col items-end justify-between cursor-pointer hover:border-primary transition-colors relative"
               >
-                <span className="text-xs text-text-secondary font-medium">{i + 1}</span>
+                <div className="w-full flex justify-between items-start">
+                  <span className="text-xs text-text-secondary font-medium">{i + 1}</span>
+                  {/* Render Tiny Badges in Calendar */}
+                  {session && (
+                    <div className="flex gap-0.5">
+                      {getBadges(session.duration_hours).map((b, idx) => (
+                        <span key={idx} className={`w-3 h-3 rounded-full flex items-center justify-center text-[7px] font-bold ${b.bg}`} title={b.title}>
+                          {b.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {session && (
-                  <div className={`absolute bottom-1 left-1 right-1 text-center rounded text-[10px] font-bold ${badgeColor}`}>
+                  <div className={`w-full text-center rounded text-[10px] font-bold ${badgeColor}`}>
                     {formatDuration(session.duration_hours)}
                   </div>
                 )}
@@ -154,7 +167,6 @@ export default function History() {
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {data.daily_summary.map((session) => {
-              // FIX: Dynamically parsing the UTC timestamp into a local date string
               const actualLocalDay = session.fast_start_time 
                 ? format(parseISO(session.fast_start_time), 'MMM dd, yyyy')
                 : format(new Date(session.date), 'MMM dd, yyyy');
@@ -171,9 +183,19 @@ export default function History() {
                   <div className="flex items-center gap-4">
                     <div className={`w-2 h-10 rounded-full ${session.is_goal_met ? 'bg-primary' : 'bg-status-warning'}`} />
                     <div>
-                      <p className="text-text-primary dark:text-text-light font-semibold">
-                        {actualLocalDay}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-text-primary dark:text-text-light font-semibold">
+                          {actualLocalDay}
+                        </p>
+                        {/* Render Badges next to Date */}
+                        <div className="flex gap-1">
+                          {getBadges(session.duration_hours).map((b, idx) => (
+                            <span key={idx} className={`w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold ${b.bg}`} title={b.title}>
+                              {b.text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                       <p className="text-xs text-text-secondary mt-0.5">
                         {session.is_goal_met ? 'Goal Met' : 'Ended Early'}
                       </p>
