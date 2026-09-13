@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Flame, AlertCircle } from 'lucide-react';
 import { parseISO, format, subMonths, addMonths, getDaysInMonth, isSameMonth } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { apiClient } from '../api/client';
@@ -26,7 +26,6 @@ export default function Insights() {
     fetchMonthData();
   }, [currentMonth]);
 
-  // Auto-scroll the chart to the right (last 7 days view)
   useEffect(() => {
     if (chartScrollRef.current) {
       chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
@@ -36,7 +35,6 @@ export default function Insights() {
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
-  // --- Prepare Chart Data (Full Month) ---
   const daysInMonth = getDaysInMonth(currentMonth);
   const chartData = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
@@ -49,11 +47,8 @@ export default function Insights() {
     };
   });
 
-  // --- Prepare Heatmap Data (24h Grid) ---
   const generateHeatmapGrid = () => {
-    // grid[day_index][hour_index] = elapsed_hours
     const grid = Array.from({ length: daysInMonth }, () => Array(24).fill(null));
-
     data.daily_summary.forEach(session => {
       if (!session.fast_start_time || !session.actual_fast_end_time) return;
       
@@ -61,15 +56,13 @@ export default function Insights() {
       const end = parseISO(session.actual_fast_end_time);
       
       let current = new Date(start);
-      current.setMinutes(0, 0, 0); // truncate to start of hour
+      current.setMinutes(0, 0, 0); 
       let elapsed = 1;
 
       while (current <= end) {
-        // Only map if the block falls within the currently selected month
         if (isSameMonth(current, currentMonth)) {
           const dIdx = current.getDate() - 1;
           const hIdx = current.getHours();
-          // Prefer higher elapsed time if overlapping
           grid[dIdx][hIdx] = grid[dIdx][hIdx] ? Math.max(grid[dIdx][hIdx], elapsed) : elapsed;
         }
         current.setHours(current.getHours() + 1);
@@ -82,16 +75,19 @@ export default function Insights() {
   const heatmapGrid = generateHeatmapGrid();
   const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
-  // Heatmap Shading Logic
+  // NEW: Shading maps directly to Physiological Stages
   const getCellColor = (val) => {
-    if (!val) return 'bg-transparent';
-    if (val <= 4) return 'bg-primary/20 text-text-primary dark:text-text-light';
-    if (val <= 8) return 'bg-primary/40 text-text-primary dark:text-text-light';
-    if (val <= 12) return 'bg-primary/70 text-surface';
-    if (val <= 16) return 'bg-primary text-surface';
-    if (val <= 20) return 'bg-primary-active text-surface';
-    return 'bg-status-warning text-surface border-none';
+    if (!val || val < 4) return 'bg-transparent text-gray-400'; // Fed State (0-4h)
+    if (val < 16) return 'bg-primary/20 text-text-primary dark:text-text-light'; // Glycogenolysis (4-16h)
+    if (val < 24) return 'bg-primary/50 text-surface'; // Metabolic Switch (16-24h)
+    if (val < 48) return 'bg-primary text-surface'; // Ketosis (24-48h)
+    return 'bg-primary-active text-surface border-none'; // Autophagy (48h+)
   };
+
+  // NEW: Quality Telemetry Calculations
+  const ketosisCount = data.daily_summary.filter(s => s.duration_hours >= 24).length;
+  const autophagyCount = data.daily_summary.filter(s => s.duration_hours >= 48).length;
+  const suboptimalCount = data.daily_summary.filter(s => s.duration_hours > 0 && s.duration_hours < 12).length;
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-5xl mx-auto pb-24">
@@ -109,44 +105,38 @@ export default function Insights() {
         </button>
       </header>
 
+      {/* NEW: Session Quality Metrics */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-purple-50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+          <Zap className="w-5 h-5 text-purple-600 mb-1" />
+          <span className="text-2xl font-bold text-purple-700 dark:text-purple-400 leading-none mb-1">{ketosisCount}</span>
+          <span className="text-[10px] text-purple-600/80 uppercase font-bold tracking-wider">Ketosis Sessions</span>
+        </div>
+        <div className="bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/30 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+          <Flame className="w-5 h-5 text-teal-600 mb-1" />
+          <span className="text-2xl font-bold text-teal-700 dark:text-teal-400 leading-none mb-1">{autophagyCount}</span>
+          <span className="text-[10px] text-teal-600/80 uppercase font-bold tracking-wider">Autophagy Reached</span>
+        </div>
+        <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 p-4 rounded-xl flex flex-col items-center justify-center text-center">
+          <AlertCircle className="w-5 h-5 text-orange-600 mb-1" />
+          <span className="text-2xl font-bold text-orange-700 dark:text-orange-400 leading-none mb-1">{suboptimalCount}</span>
+          <span className="text-[10px] text-orange-600/80 uppercase font-bold tracking-wider">Sub-optimal (&lt;12h)</span>
+        </div>
+      </div>
+
       {/* Chart: Duration Trend */}
       <section className="bg-surface dark:bg-surface-dark p-4 md:p-6 rounded-xl shadow-sm border border-border dark:border-border-dark">
         <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4">Fasting Duration Trend</h3>
         
-        {/* Scrollable Container (Shows 7 days on standard mobile viewport) */}
-        <div 
-          ref={chartScrollRef} 
-          className="overflow-x-auto overflow-y-hidden pb-4 smooth-scroll"
-        >
+        <div ref={chartScrollRef} className="overflow-x-auto overflow-y-hidden pb-4 smooth-scroll">
           <div style={{ minWidth: `${daysInMonth * 60}px`, height: '250px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: -20, bottom: 0 }}>
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 11, fill: '#888' }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 11, fill: '#888' }}
-                />
-                <Tooltip 
-                  cursor={{ stroke: '#e5e7eb', strokeWidth: 2 }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#888' }} />
+                <Tooltip cursor={{ stroke: '#e5e7eb', strokeWidth: 2 }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <ReferenceLine y={16} stroke="#F59E0B" strokeDasharray="3 3" label={{ value: 'Target', position: 'insideTopLeft', fill: '#F59E0B', fontSize: 10 }} />
-                <Line 
-                  type="monotone" 
-                  dataKey="duration" 
-                  name="Hours"
-                  stroke="#14b8a6" 
-                  strokeWidth={3}
-                  dot={{ r: 4, fill: '#14b8a6', strokeWidth: 0 }}
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                />
+                <Line type="monotone" dataKey="duration" name="Hours" stroke="#14b8a6" strokeWidth={3} dot={{ r: 4, fill: '#14b8a6', strokeWidth: 0 }} activeDot={{ r: 6, strokeWidth: 0 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -155,11 +145,10 @@ export default function Insights() {
 
       {/* Heatmap: 24h Cycle */}
       <section className="bg-surface dark:bg-surface-dark p-4 md:p-6 rounded-xl shadow-sm border border-border dark:border-border-dark overflow-hidden">
-        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4">Fasting Schedule Heatmap</h3>
+        <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-4">Physiological Stage Heatmap</h3>
         
         <div className="overflow-x-auto pb-4">
           <div className="inline-block min-w-max">
-            {/* Heatmap Header (Hours) */}
             <div className="flex border-b border-border dark:border-border-dark pb-2 mb-2">
               <div className="w-16 flex-shrink-0 text-xs font-bold text-text-secondary">Day \ Hr</div>
               {hours.map((hour, i) => (
@@ -169,7 +158,6 @@ export default function Insights() {
               ))}
             </div>
 
-            {/* Heatmap Body */}
             <div className="flex flex-col gap-1">
               {heatmapGrid.map((row, dIdx) => (
                 <div key={dIdx} className="flex">
