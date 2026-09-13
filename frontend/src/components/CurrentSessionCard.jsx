@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Target, ArrowRight, Edit2, AlertTriangle } from 'lucide-react';
+import { Clock, Target, ArrowRight, Edit2, AlertTriangle, Flame, Zap, Activity, Utensils } from 'lucide-react';
 
 export default function CurrentSessionCard({ 
   status = 'fasting', 
@@ -15,12 +15,10 @@ export default function CurrentSessionCard({
   const isUnplanned = status === 'unplanned';
   const safeProgress = isUnplanned ? 0 : progressPercent;
   
-  // Find the current stage based on elapsed hours
   const currentStage = stages.find(s => elapsedHours >= s.start_hour && elapsedHours < s.end_hour) 
-    || stages[stages.length - 1] // Fallback to final stage if exceeding max bounds
+    || stages[stages.length - 1] 
     || { stage_name: 'Not Started', primary_fuel: '-', associated_benefits: '-', key_events: '-', caution_level: 'Standard Fast', warning_banner: '' };
 
-  // SVG Math
   const circleRadius = 80;
   const circumference = 2 * Math.PI * circleRadius;
   const strokeDashoffset = circumference - (circumference * safeProgress) / 100;
@@ -31,14 +29,56 @@ export default function CurrentSessionCard({
     unplanned: { text: 'Not Scheduled', color: 'bg-gray-200 text-text-primary', dot: 'bg-gray-400' }
   };
   const activeStatus = statusConfig[status];
-
-  // Dynamic warning styling
   const isCaution = currentStage.caution_level !== 'Standard Fast';
+
+  // Elegant icon mapping for fuel sources
+  const getFuelIcon = (fuelText) => {
+    const text = fuelText.toLowerCase();
+    if (text.includes('dietary glucose')) return <Utensils className="w-5 h-5 mb-1.5 text-text-secondary/60" />;
+    if (text.includes('ketones (dominant)')) return <Zap className="w-5 h-5 mb-1.5 text-text-secondary/60" />;
+    if (text.includes('ketones + fat')) return (
+      <div className="flex gap-1 mb-1.5 text-text-secondary/60">
+        <Zap className="w-4 h-4"/><Flame className="w-4 h-4"/>
+      </div>
+    );
+    if (text.includes('ketones')) return <Zap className="w-5 h-5 mb-1.5 text-text-secondary/60" />;
+    if (text.includes('glycogen + free fatty acids')) return (
+      <div className="flex gap-1 mb-1.5 text-text-secondary/60">
+        <Activity className="w-4 h-4"/><Flame className="w-4 h-4"/>
+      </div>
+    );
+    if (text.includes('fat')) return <Flame className="w-5 h-5 mb-1.5 text-text-secondary/60" />;
+    return <Activity className="w-5 h-5 mb-1.5 text-text-secondary/60" />;
+  };
 
   return (
     <div className="bg-surface dark:bg-surface-dark rounded-xl p-4 md:p-6 shadow-sm border border-border dark:border-border-dark flex flex-col items-center max-w-lg w-full mx-auto">
       
-      {/* 1. Header Row: Status Badge & Scrolling Benefits */}
+      {/* INJECTED AUTO-SCROLL CSS */}
+      <style>{`
+        @keyframes marquee-x {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        @keyframes marquee-y {
+          0% { transform: translateY(100%); }
+          100% { transform: translateY(-100%); }
+        }
+        .auto-scroll-x {
+          display: inline-block;
+          white-space: nowrap;
+          animation: marquee-x 18s linear infinite;
+        }
+        .auto-scroll-y {
+          display: inline-block;
+          animation: marquee-y 15s linear infinite;
+        }
+        .pause-on-hover:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      {/* 1. Header Row */}
       <div className="w-full flex items-center gap-3 mb-6">
         <div className={`flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${activeStatus.color}`}>
           <div className={`w-2 h-2 rounded-full ${activeStatus.dot}`} />
@@ -46,21 +86,23 @@ export default function CurrentSessionCard({
         </div>
         
         {!isUnplanned && (
-          <div className="flex-1 overflow-x-auto whitespace-nowrap scrollbar-hide bg-yellow-50 dark:bg-yellow-900/10 text-primary dark:text-primary-hover px-3 py-1.5 rounded-lg border border-yellow-100 dark:border-yellow-900/30">
-            <span className="text-xs font-medium animate-pulse-slow">
+          // Replaced yellow with a subtle, transparent inset cut-out
+          <div className="flex-1 overflow-hidden bg-black/[0.03] dark:bg-white/[0.03] shadow-inner border border-black/5 dark:border-white/5 rounded-lg px-3 py-1.5 relative h-7">
+            <span className="text-xs font-medium text-primary dark:text-primary-hover absolute left-0 w-full auto-scroll-x pause-on-hover cursor-default">
               ✨ {currentStage.associated_benefits}
             </span>
           </div>
         )}
       </div>
 
-      {/* 2. Main Display Row: Fuel, Timer, Physiology */}
+      {/* 2. Main Display Row */}
       <div className="w-full flex justify-between items-center mb-6 gap-2 md:gap-4">
         
-        {/* Left: Primary Fuel Box */}
-        <div className="w-1/4 h-24 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-2 flex flex-col justify-center text-center shadow-sm">
-          <span className="text-[10px] uppercase text-text-secondary font-bold tracking-wider mb-1">Fuel Source</span>
-          <span className="text-xs font-semibold text-primary leading-tight line-clamp-3">
+        {/* Left: Primary Fuel Box (Inset Styling + Icons) */}
+        <div className="w-1/4 h-24 bg-black/[0.03] dark:bg-white/[0.03] shadow-inner border border-black/5 dark:border-white/5 rounded-lg p-2 flex flex-col justify-center items-center text-center">
+          {getFuelIcon(currentStage.primary_fuel)}
+          <span className="text-[9px] md:text-[10px] uppercase text-text-secondary font-bold tracking-wider mb-0.5">Fuel Source</span>
+          <span className="text-xs font-semibold text-primary leading-tight">
             {isUnplanned ? '--' : currentStage.primary_fuel}
           </span>
         </div>
@@ -92,18 +134,20 @@ export default function CurrentSessionCard({
           </div>
         </div>
 
-        {/* Right: Physiology Vertical Scroll */}
-        <div className="w-1/4 h-24 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-lg p-2 flex flex-col shadow-sm">
-          <span className="text-[10px] uppercase text-text-secondary font-bold tracking-wider mb-1 text-center">Physiology</span>
-          <div className="overflow-y-auto scrollbar-hide text-[10px] font-medium text-primary leading-relaxed pr-1 text-center h-full">
-            {isUnplanned ? '--' : currentStage.key_events}
+        {/* Right: Physiology Vertical Auto-Scroll (Inset Styling) */}
+        <div className="w-1/4 h-24 overflow-hidden bg-black/[0.03] dark:bg-white/[0.03] shadow-inner border border-black/5 dark:border-white/5 rounded-lg p-2 flex flex-col relative text-center">
+          <span className="text-[9px] md:text-[10px] uppercase text-text-secondary font-bold tracking-wider mb-1 flex-shrink-0 z-10 bg-transparent">Physiology</span>
+          <div className="relative flex-1 w-full overflow-hidden">
+            <div className="absolute top-0 left-0 w-full auto-scroll-y pause-on-hover cursor-default text-[10px] font-medium text-primary leading-relaxed px-1">
+              {isUnplanned ? '--' : currentStage.key_events}
+            </div>
           </div>
         </div>
       </div>
 
       {/* 3. Caution / Warning Banner */}
       {!isUnplanned && (
-        <div className={`w-full overflow-x-auto whitespace-nowrap scrollbar-hide px-4 py-2.5 rounded-lg mb-6 flex items-center gap-2 ${
+        <div className={`w-full px-4 py-2.5 rounded-lg mb-6 flex flex-col md:flex-row md:items-center gap-2 ${
           isCaution ? 'bg-status-error/10 border border-status-error/20 text-status-error' : 'bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-text-secondary'
         }`}>
           {isCaution && <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
