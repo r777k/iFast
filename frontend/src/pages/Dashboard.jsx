@@ -18,12 +18,18 @@ export default function Dashboard() {
   const [mealNotes, setMealNotes] = useState('');
   const [todayPlan, setTodayPlan] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [stages, setStages] = useState([]);
 
   const fetchDashboard = async () => {
     try {
-      const { data } = await apiClient.get('/analytics/dashboard');
-      setSession(data.current_session);
-      setTodayPlan(data.today_plan);
+      // Fetch both simultaneously 
+      const [dashRes, stagesRes] = await Promise.all([
+        apiClient.get('/analytics/dashboard'),
+        apiClient.get('/analytics/fasting-stages')
+      ]);
+      setSession(dashRes.data.current_session);
+      setTodayPlan(dashRes.data.today_plan);
+      setStages(stagesRes.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -168,8 +174,9 @@ export default function Dashboard() {
             <CurrentSessionCard 
               status="fasting"
               elapsedTime={elapsedString}
+              elapsedHours={session ? differenceInMinutes(now, parseISO(session.fast_start_time)) / 60 : 0} // NEW
+              stages={stages} // NEW
               progressPercent={progressPct}
-              currentPhase={phase}
               lastMealTime={lastMealFormatted}
               fastTargetTime={targetFormatted}
               remainingTime={remainingString}
