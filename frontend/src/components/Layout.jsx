@@ -1,9 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { Home, Calendar, BarChart2, Settings, Play, LogOut, Info } from 'lucide-react';
-import { useAuth } from '../context/AuthContext'; // <-- Add this import
+import { useAuth } from '../context/AuthContext'; 
 
 export default function Layout() {
-  const { logout } = useAuth(); // <-- Extract logout function
+  const { logout } = useAuth(); 
 
   const navItems = [
     { name: 'Today', path: '/', icon: Home },
@@ -56,19 +56,16 @@ export default function Layout() {
          <Outlet />
       </main>
 
-      {/* Mobile Bottom Tab Bar (Remains unchanged) */}
+      {/* Mobile Bottom Tab Bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface dark:bg-surface-dark border-t border-border dark:border-border-dark z-50">
         <div className="flex justify-around items-center h-16 px-2 relative">
-          {navItems.slice(0, 2).map((item) => (
-            <NavLink key={item.name} to={item.path} className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-150 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.name}</span>
-            </NavLink>
-          ))}
-          {/* Mobile spacing for visual alignment */}
-          <div className="w-full"></div>
-          {navItems.slice(2, 4).map((item) => (
-            <NavLink key={item.name} to={item.path} className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-150 ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+          {/* Render all 5 items evenly across the bottom bar */}
+          {navItems.map((item) => (
+            <NavLink 
+              key={item.name} 
+              to={item.path} 
+              className={({ isActive }) => `flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-150 ${isActive ? 'text-primary' : 'text-text-secondary'}`}
+            >
               <item.icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{item.name}</span>
             </NavLink>
