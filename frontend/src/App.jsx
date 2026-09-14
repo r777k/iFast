@@ -6,6 +6,7 @@ import Layout from './components/Layout'; // <-- Import the new Layout wrapper
 import History from './pages/History';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
+import About from './pages/About';
 
 // A simple wrapper to protect dashboard routes
 const ProtectedRoute = ({ children }) => {
