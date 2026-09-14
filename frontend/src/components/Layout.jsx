@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, Calendar, BarChart2, Settings, Play, LogOut } from 'lucide-react'; // <-- Add LogOut
+import { Home, Calendar, BarChart2, Settings, Play, LogOut, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext'; // <-- Add this import
 
 export default function Layout() {
@@ -10,6 +10,7 @@ export default function Layout() {
     { name: 'History', path: '/history', icon: Calendar },
     { name: 'Insights', path: '/insights', icon: BarChart2 },
     { name: 'Settings', path: '/settings', icon: Settings },
+    { name: 'About', path: '/about', icon: Info },
   ];
 
   return (
