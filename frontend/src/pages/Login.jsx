@@ -112,7 +112,7 @@ export default function Login() {
         {/* BOTTOM CARD */}
         <div 
           className="iso-layer layer-vertical" 
-          style={{ '--z-offset': '-160px', backgroundImage: "url('/preview-history.png')", animationDelay: '0s', opacity: 0.4 }} 
+          style={{ '--z-offset': '-200px', backgroundImage: "url('/preview-history.png')", animationDelay: '0s', opacity: 0.4 }} 
         />
         {/* MIDDLE CARD */}
         <div 
@@ -122,7 +122,7 @@ export default function Login() {
         {/* TOP CARD */}
         <div 
           className="iso-layer layer-map-cycle" 
-          style={{ '--z-offset': '160px', animationDelay: '0.4s', opacity: 1 }} 
+          style={{ '--z-offset': '200px', animationDelay: '0.4s', opacity: 1 }} 
         />
       </div>
     </div>
