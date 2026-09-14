@@ -71,7 +71,7 @@ export default function CurrentSessionCard({
         }
         .auto-scroll-y {
           display: inline-block;
-          animation: marquee-y 15s linear infinite;
+          animation: marquee-y 25s linear infinite;
         }
         .pause-on-hover:hover {
           animation-play-state: paused;
