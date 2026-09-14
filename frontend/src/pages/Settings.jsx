@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Bell, Calendar, Clock } from 'lucide-react';
+import { Save, Bell, Calendar, Clock, Download, Smartphone, Share, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,6 +10,11 @@ export default function Settings() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteValidation, setDeleteValidation] = useState('');
   
+  // PWA State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
   // 1. Fasting Rules State (Matched to RulesUpdate schema)
   const [rules, setRules] = useState({
     min_duration_to_count_hours: 12,
@@ -34,6 +39,21 @@ export default function Settings() {
   });
 
   useEffect(() => {
+    // --- PWA Installation Logic ---
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsStandalone(true);
+    }
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isAppleDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isAppleDevice);
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault(); 
+      setDeferredPrompt(e); 
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // --- Fetch Settings Logic ---
     const fetchAllSettings = async () => {
       try {
         const [rulesRes, notifRes, plansRes] = await Promise.all([
@@ -45,7 +65,6 @@ export default function Settings() {
         if (rulesRes.data) setRules(rulesRes.data);
         if (notifRes.data) setNotifications(notifRes.data);
         
-        // Fix: Correctly access the nested "plans" array from the API response
         const planList = plansRes.data?.plans;
         if (planList && planList.length > 0) {
           const defaultPlan = planList.find(p => p.is_default) || planList[0];
@@ -62,13 +81,24 @@ export default function Settings() {
         setLoading(false);
       }
     };
+
     fetchAllSettings();
+
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null); 
+    }
+  };
 
   const handleSaveAll = async () => {
     setSaving(true);
     try {
-      // Bulletproof time formatting to strictly guarantee "HH:MM:SS"
       const formatTime = (t) => {
         if (!t) return "00:00:00";
         const parts = t.split(':');
@@ -77,7 +107,6 @@ export default function Settings() {
         return `${hh}:${mm}:00`;
       };
 
-      // Payload matched perfectly to PlanCreate Pydantic schema
       const planPayload = {
         name: plan.name,
         fast_start_time: formatTime(plan.fast_start_time),
@@ -90,7 +119,6 @@ export default function Settings() {
       await Promise.all([
         apiClient.patch('/settings/fasting-rules', rules),
         apiClient.patch('/settings/notifications', notifications),
-        // Since there is no PATCH route for updating plan times, we create a new default plan
         apiClient.post('/fasting-plans', planPayload)
       ]);
       
@@ -117,7 +145,7 @@ export default function Settings() {
     try {
       await apiClient.delete('/settings/me/purge');
       alert('Your data has been permanently deleted.');
-      logout(); // Kick them out instantly
+      logout();
     } catch (error) {
       console.error('Failed to delete data:', error);
       alert('Failed to process deletion request.');
@@ -145,6 +173,57 @@ export default function Settings() {
           {saving ? 'Saving...' : 'Save All'}
         </button>
       </header>
+
+      {/* --- Section 0: App Installation (PWA) --- */}
+      <section className="bg-surface dark:bg-surface-dark rounded-xl border border-border dark:border-border-dark shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-border dark:border-border-dark bg-gray-50 dark:bg-gray-800/50 flex items-center gap-2">
+          <Smartphone className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">App Installation</h3>
+        </div>
+        
+        <div className="p-6">
+          {isStandalone ? (
+            <div className="flex items-center gap-3 text-status-success bg-status-success/10 p-4 rounded-lg border border-status-success/20">
+              <CheckCircle2 className="w-6 h-6" />
+              <div>
+                <p className="font-semibold text-sm">App is successfully installed.</p>
+                <p className="text-xs opacity-90 mt-0.5">You are currently using the native app experience.</p>
+              </div>
+            </div>
+          ) : deferredPrompt ? (
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-text-primary dark:text-text-light text-sm mb-1">Install FastTracker</p>
+                <p className="text-xs text-text-secondary">Get the native app experience, offline loading, and remove the browser URL bar.</p>
+              </div>
+              <button 
+                onClick={handleInstallClick}
+                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover text-surface font-medium px-5 py-2.5 rounded-lg transition-colors flex-shrink-0"
+              >
+                <Download className="w-4 h-4" />
+                <span>Install App</span>
+              </button>
+            </div>
+          ) : isIOS ? (
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="font-semibold text-text-primary dark:text-text-light text-sm mb-1">Install on iOS</p>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  Apple requires a manual step to install web apps. To add FastTracker to your home screen:
+                </p>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-border dark:border-border-dark flex items-center gap-3 text-sm text-text-primary dark:text-text-light font-medium">
+                1. Tap the <Share className="w-5 h-5 text-blue-500 inline mx-1" /> Share button below.<br/>
+                2. Scroll down and select "Add to Home Screen".
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-text-secondary">
+              App installation is not supported on this specific browser, or it is already installed.
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* --- Section 1: Daily Plan Template --- */}
       <section className="bg-surface dark:bg-surface-dark p-6 rounded-xl border border-border dark:border-border-dark shadow-sm">
