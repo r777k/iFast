@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="phase" x1="0%" y1="0%" x2="100%" y2="100%">
+      <!-- Shifts from Slate-800 to Teal-500 -->
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <!-- Optional subtle background squircle -->
+  <rect width="512" height="512" rx="112" fill="#ffffff" />
+  <!-- The precise telemetry ring with a top gap -->
+  <path d="M 175 100 A 176 176 0 1 0 337 100" fill="none" stroke="url(#phase)" stroke-width="64" stroke-linecap="round" />
+</svg>
