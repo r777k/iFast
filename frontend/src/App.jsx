@@ -40,7 +40,7 @@ export default function App() {
             <Route path="history" element={<History />} />
             <Route path="insights" element={<Insights />} />
             <Route path="settings" element={<Settings />} />
-            <Route element="{<About" path="/about"/>} />
+            <Route path="about" element={<About />} />
           </Route>
         </Routes>
       </BrowserRouter>
