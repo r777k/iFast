@@ -18,8 +18,12 @@ export default function Layout() {
       
       {/* Desktop/Tablet Sidebar Navigation */}
       <nav className="hidden md:flex flex-col w-64 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-4 py-6">
-        <div className="text-xl font-semibold mb-8 text-primary px-4">FastTracker</div>
-        
+        <div className="mb-8 px-4">
+          <div className="text-xl font-bold text-primary tracking-tight">FastTracker</div>
+          <div className="text-[9px] text-text-secondary font-bold uppercase tracking-widest mt-1">
+            Engineer Your Metabolism
+          </div>
+        </div>        
         <div className="flex flex-col gap-2 flex-grow">
           {navItems.map((item) => (
             <NavLink 
