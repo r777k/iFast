@@ -33,12 +33,7 @@ export default function Login() {
     setLoading(true);
     try {
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
-      const { data } = await apiClient.post('/auth/verify-otp', { 
-        email, 
-        otp,
-        timezone: userTimezone 
-      });
+      const { data } = await apiClient.post('/auth/verify-otp', { email, otp, timezone: userTimezone });
       login(data.access_token);
       navigate('/');
     } catch (err) {
@@ -53,10 +48,17 @@ export default function Login() {
     <div className={`relative w-full h-full flex items-center justify-center overflow-hidden perspective-[1200px]`}>
       <style>{`
         .iso-container {
-          transform: rotateX(55deg) rotateY(0deg) rotateZ(-45deg) scale(1.1);
           transform-style: preserve-3d;
           position: relative;
           width: 400px; height: 260px;
+        }
+        
+        /* Responsive Scaling for Mobile vs Desktop */
+        @media (max-width: 767px) {
+          .iso-container { transform: rotateX(55deg) rotateY(0deg) rotateZ(-45deg) scale(0.65); }
+        }
+        @media (min-width: 768px) {
+          .iso-container { transform: rotateX(55deg) rotateY(0deg) rotateZ(-45deg) scale(1.1); }
         }
         
         .iso-layer {
@@ -69,25 +71,21 @@ export default function Login() {
           background-color: #0f172a; /* Slate 900 */
         }
 
-        /* 1. Bottom Layer: Scrolling History List */
         .layer-vertical {
           background-size: 100% auto; 
           animation: floatLayer 6s ease-in-out infinite, scrollVertical 15s linear infinite alternate;
         }
 
-        /* 2. Middle Layer: Scrolling Insights/Chart */
         .layer-horizontal {
           background-size: auto 100%; 
           animation: floatLayer 6s ease-in-out infinite, scrollHorizontal 20s linear infinite alternate;
         }
 
-        /* 3. Top Layer: Dashboard Timer + Heatmap Cycling */
         .layer-map-cycle {
           background-size: 100% auto;
           animation: floatLayer 6s ease-in-out infinite, cycleMaps 12s infinite;
         }
 
-        /* The Animation Keyframes */
         @keyframes scrollVertical {
           0% { background-position: 0% 0%; }
           100% { background-position: 0% 100%; }
@@ -111,36 +109,20 @@ export default function Login() {
       `}</style>
 
       <div className="iso-container">
-        {/* BOTTOM CARD: History (Scrolls vertically) */}
+        {/* BOTTOM CARD */}
         <div 
           className="iso-layer layer-vertical" 
-          style={{ 
-            '--z-offset': '-90px', 
-            backgroundImage: "url('/preview-history.png')",
-            animationDelay: '0s',
-            opacity: 0.4
-          }} 
+          style={{ '--z-offset': '-160px', backgroundImage: "url('/preview-history.png')", animationDelay: '0s', opacity: 0.4 }} 
         />
-
-        {/* MIDDLE CARD: Insights (Scrolls horizontally) */}
+        {/* MIDDLE CARD */}
         <div 
           className="iso-layer layer-horizontal" 
-          style={{ 
-            '--z-offset': '0px', 
-            backgroundImage: "url('/preview-insights.png')",
-            animationDelay: '0.2s',
-            opacity: 0.7
-          }} 
+          style={{ '--z-offset': '0px', backgroundImage: "url('/preview-insights.png')", animationDelay: '0.2s', opacity: 0.7 }} 
         />
-
-        {/* TOP CARD: Dashboard/Heatmap (Cycles) */}
+        {/* TOP CARD */}
         <div 
           className="iso-layer layer-map-cycle" 
-          style={{ 
-            '--z-offset': '90px', 
-            animationDelay: '0.4s',
-            opacity: 1
-          }} 
+          style={{ '--z-offset': '160px', animationDelay: '0.4s', opacity: 1 }} 
         />
       </div>
     </div>
@@ -149,48 +131,36 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col md:flex-row font-sans">
       
-      {/* Left Side: Animated 3D Preview (Hidden on Mobile) */}
-      <div className="hidden md:flex md:w-1/2 bg-slate-900 border-r border-slate-800 flex-col items-center justify-center relative overflow-hidden">
+      {/* Top/Left Side: Animated 3D Preview */}
+      <div className="flex w-full h-[40vh] md:h-auto md:w-1/2 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex-col items-center justify-center relative overflow-hidden">
         
-        {/* Branding Overlay */}
-        <div className="absolute top-12 left-12 z-20">
+        {/* Responsive Branding Overlay */}
+        <div className="absolute top-6 left-6 md:top-12 md:left-12 z-20">
           <div className="flex items-center gap-2 text-primary mb-1">
-            <Activity className="w-6 h-6 text-teal-400" />
-            <h1 className="text-2xl font-bold tracking-tight text-white">FastTracker</h1>
+            <Activity className="w-5 h-5 md:w-6 md:h-6 text-teal-400" />
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white">FastTracker</h1>
           </div>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+          <p className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">
             Engineer Your Metabolism
           </p>
         </div>
 
         {/* 3D Render Canvas */}
-        <div className="w-full h-full pt-20 pb-12 flex items-center justify-center">
+        <div className="w-full h-full pt-16 md:pt-20 pb-8 md:pb-12 flex items-center justify-center">
             {renderCinematicTeaser()}
         </div>
 
         {/* Subtle Bottom Glow */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 md:h-32 bg-gradient-to-t from-primary/20 to-transparent pointer-events-none" />
       </div>
 
-      {/* Right Side: Login Form */}
+      {/* Bottom/Right Side: Login Form */}
       <div className="flex-1 flex flex-col justify-center items-center p-6 md:p-12 relative">
-        
-        {/* Mobile Branding (Hidden on Desktop) */}
-        <div className="md:hidden flex flex-col items-center mb-10">
-          <div className="flex items-center gap-2 text-primary mb-1">
-            <Activity className="w-8 h-8" />
-            <h1 className="text-3xl font-bold tracking-tight">FastTracker</h1>
-          </div>
-          <p className="text-[10px] text-text-secondary font-bold uppercase tracking-widest">
-            Engineer Your Metabolism
-          </p>
-        </div>
-
         <div className="w-full max-w-sm bg-surface dark:bg-surface-dark p-8 rounded-2xl shadow-sm border border-border dark:border-border-dark">
-          <h2 className="text-2xl font-bold text-text-primary dark:text-text-light mb-2 text-center">
+          <h2 className="text-xl md:text-2xl font-bold text-text-primary dark:text-text-light mb-2 text-center">
             {step === 1 ? 'Welcome Back' : 'Verify Code'}
           </h2>
-          <p className="text-sm text-text-secondary text-center mb-8">
+          <p className="text-xs md:text-sm text-text-secondary text-center mb-8">
             {step === 1 ? 'Enter your email to access your telemetry.' : `Code sent to ${email}`}
           </p>
 
