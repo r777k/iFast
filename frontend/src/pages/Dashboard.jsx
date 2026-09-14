@@ -158,9 +158,15 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-3xl mx-auto">
       
-      <header className="flex justify-between items-center pb-2 md:pb-6">
-        <h1 className="text-xl font-bold text-primary tracking-tight">FastTracker</h1>
-        <div className="flex gap-4 text-text-secondary">
+      {/* Mobile Top Header */}
+      <header className="md:hidden flex justify-between items-center pb-2 md:pb-6">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-bold text-primary tracking-tight leading-none">FastTracker</h1>
+          <span className="text-[9px] text-text-secondary font-semibold uppercase tracking-wider mt-1">
+            Engineer Your Metabolism
+          </span>
+        </div>
+        <div className="flex gap-4 text-text-secondary items-center">
           <button className="hover:text-primary transition-colors"><Settings className="w-5 h-5" /></button>
           <button onClick={logout} className="hover:text-status-error transition-colors"><LogOut className="w-5 h-5" /></button>
         </div>
