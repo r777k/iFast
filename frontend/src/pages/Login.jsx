@@ -13,22 +13,6 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // --- Carousel State & Logic ---
-  const [currentImage, setCurrentImage] = useState(0);
-  const previews = [
-    '/preview-dashboard.png',
-    '/preview-history.png',
-    '/preview-insights.png',
-    '/preview-heatmap.png'
-  ];
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentImage((prev) => (prev + 1) % previews.length);
-    }, 4000); // Crossfade every 4 seconds
-    return () => clearInterval(timer);
-  }, [previews.length]);
-
   const handleRequestOtp = async (e) => {
     e.preventDefault();
     setError('');
@@ -48,7 +32,6 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      // Magically gets 'Asia/Kolkata' or wherever the user currently is
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       const { data } = await apiClient.post('/auth/verify-otp', { 
@@ -65,50 +48,128 @@ export default function Login() {
     }
   };
 
+  // --- 3D Isometric Teaser Component ---
+  const renderCinematicTeaser = () => (
+    <div className={`relative w-full h-full flex items-center justify-center overflow-hidden perspective-[1200px]`}>
+      <style>{`
+        .iso-container {
+          transform: rotateX(55deg) rotateY(0deg) rotateZ(-45deg) scale(1.1);
+          transform-style: preserve-3d;
+          position: relative;
+          width: 400px; height: 260px;
+        }
+        
+        .iso-layer {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          border-radius: 16px;
+          background-repeat: no-repeat;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          box-shadow: -35px 35px 50px rgba(0,0,0,0.4);
+          background-color: #0f172a; /* Slate 900 */
+        }
+
+        /* 1. Bottom Layer: Scrolling History List */
+        .layer-vertical {
+          background-size: 100% auto; 
+          animation: floatLayer 6s ease-in-out infinite, scrollVertical 15s linear infinite alternate;
+        }
+
+        /* 2. Middle Layer: Scrolling Insights/Chart */
+        .layer-horizontal {
+          background-size: auto 100%; 
+          animation: floatLayer 6s ease-in-out infinite, scrollHorizontal 20s linear infinite alternate;
+        }
+
+        /* 3. Top Layer: Dashboard Timer + Heatmap Cycling */
+        .layer-map-cycle {
+          background-size: 100% auto;
+          animation: floatLayer 6s ease-in-out infinite, cycleMaps 12s infinite;
+        }
+
+        /* The Animation Keyframes */
+        @keyframes scrollVertical {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 0% 100%; }
+        }
+
+        @keyframes scrollHorizontal {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 100% 0%; }
+        }
+
+        @keyframes floatLayer {
+          0%, 100% { transform: translateZ(var(--z-offset)) translateY(0px); }
+          50% { transform: translateZ(var(--z-offset)) translateY(-15px); }
+        }
+
+        @keyframes cycleMaps {
+          0%, 45% { background-image: url('/preview-dashboard.png'); }
+          50%, 95% { background-image: url('/preview-heatmap.png'); }
+          100% { background-image: url('/preview-dashboard.png'); }
+        }
+      `}</style>
+
+      <div className="iso-container">
+        {/* BOTTOM CARD: History (Scrolls vertically) */}
+        <div 
+          className="iso-layer layer-vertical" 
+          style={{ 
+            '--z-offset': '-90px', 
+            backgroundImage: "url('/preview-history.png')",
+            animationDelay: '0s',
+            opacity: 0.4
+          }} 
+        />
+
+        {/* MIDDLE CARD: Insights (Scrolls horizontally) */}
+        <div 
+          className="iso-layer layer-horizontal" 
+          style={{ 
+            '--z-offset': '0px', 
+            backgroundImage: "url('/preview-insights.png')",
+            animationDelay: '0.2s',
+            opacity: 0.7
+          }} 
+        />
+
+        {/* TOP CARD: Dashboard/Heatmap (Cycles) */}
+        <div 
+          className="iso-layer layer-map-cycle" 
+          style={{ 
+            '--z-offset': '90px', 
+            animationDelay: '0.4s',
+            opacity: 1
+          }} 
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background dark:bg-background-dark flex flex-col md:flex-row font-sans">
       
-      {/* Left Side: Animated App Preview */}
-      <div className="hidden md:flex md:w-1/2 bg-surface dark:bg-surface-dark border-r border-border dark:border-border-dark flex-col items-center justify-center p-12 relative overflow-hidden">
+      {/* Left Side: Animated 3D Preview (Hidden on Mobile) */}
+      <div className="hidden md:flex md:w-1/2 bg-slate-900 border-r border-slate-800 flex-col items-center justify-center relative overflow-hidden">
         
         {/* Branding Overlay */}
         <div className="absolute top-12 left-12 z-20">
           <div className="flex items-center gap-2 text-primary mb-1">
-            <Activity className="w-6 h-6" />
-            <h1 className="text-2xl font-bold tracking-tight">FastTracker</h1>
+            <Activity className="w-6 h-6 text-teal-400" />
+            <h1 className="text-2xl font-bold tracking-tight text-white">FastTracker</h1>
           </div>
-          <p className="text-xs text-text-secondary font-bold uppercase tracking-widest">
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
             Engineer Your Metabolism
           </p>
         </div>
 
-        {/* Cross-fading Image Carousel */}
-        <div className="relative w-full max-w-lg aspect-square mt-12 rounded-2xl shadow-2xl border border-border dark:border-border-dark overflow-hidden bg-white dark:bg-gray-900">
-          {previews.map((src, idx) => (
-            <img
-              key={src}
-              src={src}
-              alt={`App Preview ${idx + 1}`}
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out ${
-                idx === currentImage 
-                  ? 'opacity-100 scale-100' 
-                  : 'opacity-0 scale-105'
-              }`}
-            />
-          ))}
+        {/* 3D Render Canvas */}
+        <div className="w-full h-full pt-20 pb-12 flex items-center justify-center">
+            {renderCinematicTeaser()}
         </div>
-        
-        {/* Carousel Indicators */}
-        <div className="absolute bottom-12 flex gap-3 z-20">
-          {previews.map((_, idx) => (
-            <div 
-              key={idx} 
-              className={`h-1.5 rounded-full transition-all duration-500 ${
-                idx === currentImage ? 'w-8 bg-primary' : 'w-2 bg-gray-300 dark:bg-gray-700'
-              }`}
-            />
-          ))}
-        </div>
+
+        {/* Subtle Bottom Glow */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-primary/10 to-transparent pointer-events-none" />
       </div>
 
       {/* Right Side: Login Form */}
@@ -157,7 +218,7 @@ export default function Login() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-hover active:bg-primary-active text-surface font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2"
+                className="w-full bg-primary hover:bg-primary-hover active:bg-primary-active text-surface font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
               >
                 {loading ? 'Sending Code...' : 'Send Code'}
               </button>
@@ -171,7 +232,7 @@ export default function Login() {
                 <input
                   type="text"
                   required
-                  className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-center text-xl font-mono tracking-widest text-text-primary dark:text-text-light bg-background dark:bg-background-dark transition-shadow"
+                  className="w-full px-4 py-3 rounded-lg border border-border dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-center text-xl font-mono tracking-widest text-text-primary dark:text-text-light bg-background dark:bg-background-dark transition-shadow uppercase"
                   placeholder="000000"
                   maxLength={6}
                   value={otp}
@@ -181,7 +242,7 @@ export default function Login() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-hover active:bg-primary-active text-surface font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2"
+                className="w-full bg-primary hover:bg-primary-hover active:bg-primary-active text-surface font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
               >
                 {loading ? 'Verifying...' : 'Verify & Login'}
               </button>
