@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { parseISO, format, subMonths, addMonths, startOfMonth, endOfMonth, getDaysInMonth, getDay, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Award, Clock, Calendar as CalendarIcon, Flame } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Award, Clock, Calendar as CalendarIcon, Flame, Zap } from 'lucide-react';
 import { apiClient } from '../api/client';
 import EditSessionModal from '../components/EditSessionModal';
 import LogPastFastModal from '../components/LogPastFastModal';
@@ -44,25 +44,34 @@ export default function History() {
     return `${pad(h)}:${pad(m)}`;
   };
 
-  // NEW: Badge Generator Function
   const getBadges = (hours) => {
     const badges = [];
-    if (hours >= 16) badges.push({ text: 'F', bg: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600', title: 'Metabolic Switch (16h+)' });
-    if (hours >= 24) badges.push({ text: 'K', bg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600', title: 'Ketosis (24h+)' });
-    if (hours >= 48) badges.push({ text: 'A', bg: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600', title: 'Autophagy (48h+)' });
+    if (hours >= 16) badges.push({ text: 'F', bg: 'bg-orange-100 dark:bg-orange-900/30 text-orange-600', title: 'Fat Burning' });
+    if (hours >= 24) badges.push({ text: 'K', bg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600', title: 'Ketosis' });
+    if (hours >= 48) badges.push({ text: 'A', bg: 'bg-teal-100 dark:bg-teal-900/30 text-teal-600', title: 'Autophagy' });
     return badges;
   };
 
+  const totalSessions = data.daily_summary.length;
+  const fatBurnCount = data.daily_summary.filter(s => s.duration_hours >= 16).length;
+  const ketosisCount = data.daily_summary.filter(s => s.duration_hours >= 24).length;
+  const autophagyCount = data.daily_summary.filter(s => s.duration_hours >= 48).length;
+
   const summaryCards = [
     { label: "Avg Duration", value: formatDuration(data.metrics?.average_duration_hours), icon: Clock },
-    { label: "Completed", value: `${data.metrics?.completed_fasts || 0}`, icon: Award },
-    { label: "Longest", value: `${data.metrics?.longest_duration_hours || 0}h`, icon: CalendarIcon },
-    { label: "Streak", value: `${data.metrics?.current_streak || 0} days`, icon: Flame },
+    { label: "Fat Burn (16h+)", value: `${fatBurnCount}/${totalSessions}`, icon: Flame },
+    { label: "Ketosis (24h+)", value: `${ketosisCount}/${totalSessions}`, icon: Zap },
+    { label: "Autophagy (48h+)", value: `${autophagyCount}/${totalSessions}`, icon: Award },
+  ];
+
+  const legendItems = [
+    { code: 'F', label: 'Fat Burning (16h+)', event: 'Glycogen nears depletion; lipolysis accelerates, releasing fatty acids; growth hormone starts climbing; ketone production begins.' },
+    { code: 'K', label: 'Ketosis (24h+)', event: 'Glycogen essentially depleted; gluconeogenesis becomes main glucose source; ketone levels rise meaningfully (~1-2 mmol/L); insulin near floor.' },
+    { code: 'A', label: 'Autophagy (48h+)', event: 'Brain increasingly runs on ketones; growth hormone elevated; autophagy near peak; immune-cell turnover signaling rises.' }
   ];
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-4xl mx-auto pb-24">
-      {/* Header & Stats Summary remain the same */}
       <header className="flex justify-between items-center bg-surface dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border dark:border-border-dark">
         <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
@@ -75,6 +84,7 @@ export default function History() {
         </button>
       </header>
 
+      {/* Stats Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {summaryCards.map((card, idx) => (
           <div key={idx} className="bg-surface dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border dark:border-border-dark flex flex-col items-center justify-center text-center">
@@ -85,8 +95,8 @@ export default function History() {
         ))}
       </div>
 
-      {/* Calendar View */}
-      <div className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-4">
+      {/* Calendar View & Legend */}
+      <div className="bg-surface dark:bg-surface-dark rounded-xl shadow-sm border border-border dark:border-border-dark p-4 space-y-4">
         <div className="grid grid-cols-7 text-center text-xs font-semibold text-text-secondary mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day}>{day}</div>)}
         </div>
@@ -120,7 +130,6 @@ export default function History() {
               >
                 <div className="w-full flex justify-between items-start">
                   <span className="text-xs text-text-secondary font-medium">{i + 1}</span>
-                  {/* Render Tiny Badges in Calendar */}
                   {session && (
                     <div className="flex gap-0.5">
                       {getBadges(session.duration_hours).map((b, idx) => (
@@ -140,6 +149,21 @@ export default function History() {
             );
           })}
         </div>
+
+        {/* Legend Strip with Hover Tooltips */}
+        <div className="border-t border-border dark:border-border-dark pt-3 flex flex-wrap gap-4 justify-center text-xs text-text-secondary">
+          {legendItems.map((item, idx) => (
+            <div key={idx} className="group relative cursor-help flex items-center gap-1.5 bg-background dark:bg-background-dark px-2.5 py-1 rounded border border-border dark:border-border-dark">
+              <span className="font-bold text-primary">{item.code}:</span>
+              <span>{item.label}</span>
+              {/* Tooltip Popup */}
+              <div className="absolute bottom-full mb-2 hidden group-hover:block w-64 p-2.5 bg-surface-dark text-white text-[11px] rounded shadow-lg z-50 pointer-events-none leading-relaxed">
+                <p className="font-semibold text-primary mb-1">{item.label}</p>
+                {item.event}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* High-Density Data List */}
@@ -148,7 +172,7 @@ export default function History() {
           <h3 className="text-sm font-bold text-text-secondary uppercase tracking-wider">Fasting Log</h3>
           <button 
             onClick={() => setIsManualModalOpen(true)}
-            className="text-xs font-semibold text-primary hover:text-primary-hover active:text-primary-active transition-colors flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-md"
+            className="text-xs font-semibold text-primary hover:text-primary-hover transition-colors flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-md"
           >
             + Log Past Fast
           </button>
@@ -158,11 +182,8 @@ export default function History() {
           <div className="p-8 text-center text-text-secondary">Loading telemetry...</div>
         ) : data.daily_summary.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center">
-            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-              <CalendarIcon className="w-6 h-6 text-text-secondary" />
-            </div>
+            <CalendarIcon className="w-6 h-6 text-text-secondary mb-2" />
             <p className="text-text-primary dark:text-text-light font-medium">No fasts logged this month.</p>
-            <p className="text-sm text-text-secondary mt-1">Your completed sessions will appear here.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -184,30 +205,18 @@ export default function History() {
                     <div className={`w-2 h-10 rounded-full ${session.is_goal_met ? 'bg-primary' : 'bg-status-warning'}`} />
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="text-text-primary dark:text-text-light font-semibold">
-                          {actualLocalDay}
-                        </p>
-                        {/* Render Badges next to Date */}
+                        <p className="text-text-primary dark:text-text-light font-semibold">{actualLocalDay}</p>
                         <div className="flex gap-1">
                           {getBadges(session.duration_hours).map((b, idx) => (
-                            <span key={idx} className={`w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold ${b.bg}`} title={b.title}>
-                              {b.text}
-                            </span>
+                            <span key={idx} className={`w-4 h-4 rounded flex items-center justify-center text-[9px] font-bold ${b.bg}`} title={b.title}>{b.text}</span>
                           ))}
                         </div>
                       </div>
-                      <p className="text-xs text-text-secondary mt-0.5">
-                        {session.is_goal_met ? 'Goal Met' : 'Ended Early'}
-                      </p>
+                      <p className="text-xs text-text-secondary mt-0.5">{session.is_goal_met ? 'Goal Met' : 'Ended Early'}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-text-primary dark:text-text-light font-mono">
-                      {formatDuration(session.duration_hours)}
-                    </p>
-                    <button className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity font-medium">
-                      Edit Session
-                    </button>
+                    <p className="text-lg font-bold text-text-primary dark:text-text-light font-mono">{formatDuration(session.duration_hours)}</p>
                   </div>
                 </div>
               );
@@ -215,23 +224,12 @@ export default function History() {
           </div>
         )}
         {isEditModalOpen && selectedSession && (
-          <EditSessionModal 
-            session={selectedSession} 
-            onClose={() => {
-              setIsEditModalOpen(false);
-              setSelectedSession(null);
-            }}
-            onRefresh={() => fetchMonthData(currentMonth)}
-          />
+          <EditSessionModal session={selectedSession} onClose={() => { setIsEditModalOpen(false); setSelectedSession(null); }} onRefresh={() => fetchMonthData(currentMonth)} />
         )}
         {isManualModalOpen && (
-          <LogPastFastModal 
-            onClose={() => setIsManualModalOpen(false)}
-            onRefresh={() => fetchMonthData(currentMonth)}
-          />
+          <LogPastFastModal onClose={() => setIsManualModalOpen(false)} onRefresh={() => fetchMonthData(currentMonth)} />
         )}
       </div>
-
     </div>
   );
 }
