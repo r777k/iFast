@@ -17,9 +17,9 @@ export default function Login() {
   // --- Mobile Quiet Carousel State ---
   const [currentSlide, setCurrentSlide] = useState(0);
   const slides = [
-    { src: '/preview-LiveMetabolicState.jpg', alt: 'Live Metabolic State' },
-    { src: '/preview-Calendar.jpg', alt: 'Fasting Calendar' },
-    { src: '/preview-Trends.jpg', alt: 'Duration Trends' }
+    { src: '/preview-LiveMetabolicState.png', alt: 'Live Metabolic State' },
+    { src: '/preview-Calendar.png', alt: 'Fasting Calendar' },
+    { src: '/preview-Trends.png', alt: 'Duration Trends' }
   ];
 
   useEffect(() => {
