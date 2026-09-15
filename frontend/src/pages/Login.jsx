@@ -67,89 +67,83 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row font-sans bg-white dark:bg-background-dark">
+    <div className="min-h-screen w-full bg-slate-900 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 to-slate-950 relative overflow-hidden flex flex-col font-sans">
       
-      {/* --- DESKTOP: Left Panel (Product Story) --- */}
-      <div className="hidden lg:flex lg:w-[55%] xl:w-[60%] bg-slate-900 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 to-slate-950 flex-col relative overflow-hidden p-12 xl:p-16 border-r border-slate-800">
+      {/* Subtle Technical Grid Background */}
+      <div 
+        className="absolute inset-0 z-0 opacity-[0.15]" 
+        style={{ 
+          backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', 
+          backgroundSize: '40px 40px' 
+        }}
+      />
+
+      {/* Main Content Wrapper */}
+      <div className="relative z-10 flex-1 flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-20 max-w-7xl mx-auto w-full px-6 py-12 lg:px-12">
         
-        {/* Subtle Technical Grid Background */}
-        <div className="absolute inset-0 z-0 opacity-[0.15]" style={{ backgroundImage: 'linear-gradient(#334155 1px, transparent 1px), linear-gradient(90deg, #334155 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-
-        {/* Branding */}
-        <div className="relative z-10 flex items-center gap-2 text-teal-400 mb-1">
-          <Activity className="w-7 h-7" />
-          <h1 className="text-3xl font-bold tracking-tight text-white">FastTracker</h1>
-        </div>
-        <p className="relative z-10 text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-16">
-          Engineer Your Metabolism
-        </p>
-
-        {/* Narrative */}
-        <div className="relative z-10 mb-10 max-w-xl">
-          <h2 className="text-3xl xl:text-4xl font-light text-slate-200 leading-snug">
-            Know where you are in your fast—<br/><span className="font-semibold text-white">and what comes next.</span>
-          </h2>
-        </div>
-
-        {/* Static 3-Crop Layout */}
-        <div className="relative z-10 flex-1 flex flex-col w-full max-w-[700px]">
-          {/* Main Hero Crop */}
-          <div className="mb-6">
-            <img 
-              src="/preview-LiveMetabolicState.png" 
-              alt="Live Metabolic State" 
-              className="w-full max-w-[360px] xl:max-w-[420px] rounded-xl shadow-2xl shadow-black/60 border border-slate-700/50"
-            />
-          </div>
+        {/* --- LEFT PANEL: Product Story --- */}
+        <div className="w-full lg:flex-1 max-w-2xl flex flex-col">
           
-          {/* Supporting Previews Row */}
-          <div className="flex gap-6 pl-8 xl:pl-16">
-            <img 
-              src="/preview-Calendar.png" 
-              alt="Build a fasting rhythm" 
-              className="w-[180px] xl:w-[220px] rounded-lg shadow-xl shadow-black/40 border border-slate-700/50 opacity-95 transition-transform hover:-translate-y-1"
-            />
-            <img 
-              src="/preview-Trends.png" 
-              alt="Make progress visible" 
-              className="w-[180px] xl:w-[220px] rounded-lg shadow-xl shadow-black/40 border border-slate-700/50 opacity-95 transition-transform hover:-translate-y-1"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* --- RIGHT/MOBILE: Login Area --- */}
-      <div className="flex-1 flex flex-col bg-slate-50 dark:bg-background-dark min-h-screen lg:min-h-0 relative">
-        
-        {/* Mobile App Branding & Carousel (Hidden on Desktop) */}
-        <div className="lg:hidden flex flex-col bg-slate-900 px-6 pt-10 pb-6 border-b border-slate-800">
+          {/* Branding */}
           <div className="flex items-center gap-2 text-teal-400 mb-1">
-            <Activity className="w-6 h-6" />
-            <h1 className="text-2xl font-bold tracking-tight text-white">FastTracker</h1>
+            <Activity className="w-7 h-7" />
+            <h1 className="text-3xl font-bold tracking-tight text-white">FastTracker</h1>
           </div>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-6">
+          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-10 lg:mb-16">
             Engineer Your Metabolism
           </p>
-          
-          {/* Mobile Preview Carousel (160 - 220px tall) */}
-          <div className="relative w-full max-w-sm mx-auto aspect-[4/3] max-h-[200px] bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700/50">
+
+          {/* Narrative */}
+          <div className="mb-8 lg:mb-10">
+            <h2 className="text-3xl lg:text-4xl font-light text-slate-200 leading-snug">
+              Know where you are in your fast—<br className="hidden md:block" />
+              <span className="font-semibold text-white">and what comes next.</span>
+            </h2>
+          </div>
+
+          {/* Desktop Static 3-Crop Layout */}
+          <div className="hidden lg:flex flex-col w-full">
+            <div className="mb-6">
+              <img 
+                src="/preview-LiveMetabolicState.png" 
+                alt="Live Metabolic State" 
+                className="w-full max-w-[420px] rounded-xl shadow-2xl shadow-black/60 border border-slate-700/50"
+              />
+            </div>
+            <div className="flex gap-6 pl-8">
+              <img 
+                src="/preview-Calendar.png" 
+                alt="Build a fasting rhythm" 
+                className="w-[200px] xl:w-[220px] rounded-lg shadow-xl shadow-black/40 border border-slate-700/50 opacity-95 transition-transform hover:-translate-y-1"
+              />
+              <img 
+                src="/preview-Trends.png" 
+                alt="Make progress visible" 
+                className="w-[200px] xl:w-[220px] rounded-lg shadow-xl shadow-black/40 border border-slate-700/50 opacity-95 transition-transform hover:-translate-y-1"
+              />
+            </div>
+          </div>
+
+          {/* Mobile Quiet Carousel */}
+          <div className="lg:hidden relative w-full aspect-[4/3] sm:aspect-video mb-8">
             {slides.map((slide, idx) => (
               <img
                 key={slide.src}
                 src={slide.src}
                 alt={slide.alt}
-                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out motion-reduce:transition-none ${
+                // object-contain ensures the image is never cropped
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-1000 ease-in-out motion-reduce:transition-none ${
                   idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
                 }`}
               />
             ))}
-            {/* Carousel Indicators (Hidden on very short screens) */}
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-20 hidden min-[600px]:flex">
+            {/* Carousel Indicators */}
+            <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
               {slides.map((_, idx) => (
                 <div 
                   key={idx} 
                   className={`h-1.5 rounded-full transition-all duration-300 ${
-                    idx === currentSlide ? 'w-6 bg-teal-400' : 'w-1.5 bg-white/30'
+                    idx === currentSlide ? 'w-6 bg-teal-400' : 'w-1.5 bg-slate-600'
                   }`}
                 />
               ))}
@@ -157,18 +151,19 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Form Container */}
-        <div className="flex-1 flex flex-col justify-center items-center p-6 lg:p-12">
-          <div className="w-full max-w-sm bg-white dark:bg-surface-dark p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-border-dark">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-text-light mb-2 text-center">
+        {/* --- RIGHT PANEL: Login Form --- */}
+        <div className="w-full max-w-sm lg:max-w-md lg:w-[420px] shrink-0 mt-8 lg:mt-0">
+          {/* Forced white background to ensure high contrast against the dark grid, as per the mockup */}
+          <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-2xl shadow-black/50 border border-slate-200">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2 text-center">
               Welcome back
             </h2>
-            <p className="text-sm text-slate-500 dark:text-text-secondary text-center mb-8 leading-relaxed">
+            <p className="text-sm text-slate-500 text-center mb-8 leading-relaxed">
               Sign in to engineer your metabolism, track your fasts!
             </p>
 
             {error && (
-              <div className="mb-6 p-3 bg-rose-50 dark:bg-status-error/10 border border-rose-200 dark:border-status-error/20 text-rose-600 dark:text-status-error text-sm rounded-lg text-center font-medium">
+              <div className="mb-6 p-3 bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-lg text-center font-medium">
                 {error}
               </div>
             )}
@@ -176,7 +171,7 @@ export default function Login() {
             {step === 1 ? (
               <form onSubmit={handleRequestOtp} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-text-light mb-1.5">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
                     Email address
                   </label>
                   <input
@@ -184,7 +179,7 @@ export default function Login() {
                     required
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-slate-900 dark:text-text-light bg-white dark:bg-background-dark transition-shadow"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-slate-900 bg-white transition-shadow"
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -193,7 +188,7 @@ export default function Login() {
                 <button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
+                  className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
                 >
                   {loading ? 'Sending Code...' : 'Send Code'}
                 </button>
@@ -201,7 +196,7 @@ export default function Login() {
             ) : (
               <form onSubmit={handleVerifyOtp} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-text-light mb-1.5 text-center">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5 text-center">
                     6-Digit OTP
                   </label>
                   <input
@@ -209,7 +204,7 @@ export default function Login() {
                     required
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
-                    className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-center text-xl font-mono tracking-widest text-slate-900 dark:text-text-light bg-white dark:bg-background-dark transition-shadow uppercase"
+                    className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-center text-xl font-mono tracking-widest text-slate-900 bg-white transition-shadow uppercase"
                     placeholder="000000"
                     maxLength={6}
                     value={otp}
@@ -219,7 +214,7 @@ export default function Login() {
                 <button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
+                  className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
                 >
                   {loading ? 'Verifying...' : 'Verify & Login'}
                 </button>
