@@ -14,8 +14,7 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // --- Image Cycling State & Logic ---
-  // Index 0: Main Hero, Index 1: Left Thumbnail, Index 2: Right Thumbnail
+  // --- Image Cycling State & Logic (Desktop) ---
   const images = [
     { src: '/preview-LiveMetabolicState.png', alt: 'Live Metabolic State' },
     { src: '/preview-Calendar.png', alt: 'Fasting Calendar' },
@@ -30,8 +29,6 @@ export default function Login() {
 
     const timer = setInterval(() => {
       setSlotIndices((prev) => {
-        // Rotate slots: [main, left_thumb, right_thumb]
-        // Next main comes from left_thumb, next left_thumb from right_thumb, next right_thumb from main
         return [prev[1], prev[2], prev[0]];
       });
     }, 4500);
@@ -69,6 +66,87 @@ export default function Login() {
     }
   };
 
+  const renderSignInForm = () => (
+    <div className="bg-white text-slate-900 p-8 sm:p-10 rounded-2xl shadow-2xl shadow-black/60 border border-slate-200 w-full max-w-md">
+      <h3 className="text-2xl font-bold text-slate-900 mb-2 text-center">
+        Welcome back
+      </h3>
+      <p className="text-sm text-slate-500 text-center mb-8 leading-relaxed">
+        Sign in to engineer your metabolism, track your fasts!
+      </p>
+
+      {error && (
+        <div className="mb-6 p-3 bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-lg text-center font-medium">
+          {error}
+        </div>
+      )}
+
+      {step === 1 ? (
+        <form onSubmit={handleRequestOtp} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Email address
+            </label>
+            <input
+              type="email"
+              required
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-slate-900 bg-white transition-shadow"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
+          >
+            {loading ? 'Sending Code...' : 'Send Code'}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleVerifyOtp} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 text-center">
+              6-Digit OTP
+            </label>
+            <input
+              type="text"
+              required
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-center text-xl font-mono tracking-widest text-slate-900 bg-white transition-shadow uppercase"
+              placeholder="000000"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
+          >
+            {loading ? 'Verifying...' : 'Verify & Login'}
+          </button>
+          <button 
+            type="button" 
+            onClick={() => {
+              setStep(1);
+              setOtp('');
+              setError('');
+            }}
+            className="w-full text-sm text-slate-500 hover:text-teal-600 transition-colors mt-2 font-medium"
+          >
+            Use a different email
+          </button>
+        </form>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen w-full bg-slate-900 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 to-slate-950 relative overflow-x-hidden flex flex-col font-sans text-slate-100">
       
@@ -81,7 +159,7 @@ export default function Login() {
         }}
       />
 
-      <div className="relative z-10 flex flex-col max-w-7xl mx-w-6xl mx-auto w-full px-6 py-8 lg:px-12 lg:py-12 flex-1">
+      <div className="relative z-10 flex flex-col max-w-7xl mx-auto w-full px-6 py-8 lg:px-12 lg:py-12 flex-1">
         
         {/* --- TOP: Branding & Title --- */}
         <div className="flex flex-col mb-8 lg:mb-12">
@@ -100,12 +178,32 @@ export default function Login() {
           </h2>
         </div>
 
-        {/* --- MAIN CONTENT GRID --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start flex-1">
+        {/* --- MOBILE VIEW: Sign-in Box Above, Image Slider Below --- */}
+        <div className="flex flex-col lg:hidden items-center w-full space-y-8 pb-12">
+          {/* Sign-in Card */}
+          <div className="w-full flex justify-center">
+            {renderSignInForm()}
+          </div>
+
+          {/* Image Slider */}
+          <div className="w-full">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Product Preview</h3>
+            <div className="flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory scrollbar-none px-2">
+              {images.map((img, idx) => (
+                <div key={idx} className="shrink-0 w-[280px] snap-center bg-slate-950/60 p-2 rounded-xl border border-slate-700/60 shadow-lg">
+                  <img src={img.src} alt={img.alt} className="w-full h-auto rounded-lg object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* --- DESKTOP VIEW: Unchanged 2-Column Grid --- */}
+        <div className="hidden lg:grid grid-cols-12 gap-10 items-start flex-1">
           
-          {/* LEFT COLUMN: Visual Preview Matrix (7 Cols on Desktop) */}
+          {/* LEFT COLUMN: Visual Preview Matrix (7 Cols) */}
           <div 
-            className="lg:col-span-7 flex flex-col gap-5 select-none"
+            className="col-span-7 flex flex-col gap-5 select-none"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
@@ -137,89 +235,13 @@ export default function Login() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Sign-in Card (5 Cols on Desktop) */}
-          <div className="lg:col-span-5 flex justify-center lg:justify-end w-full">
-            <div className="bg-white text-slate-900 p-8 sm:p-10 rounded-2xl shadow-2xl shadow-black/60 border border-slate-200 w-full max-w-md">
-              <h3 className="text-2xl font-bold text-slate-900 mb-2 text-center">
-                Welcome back
-              </h3>
-              <p className="text-sm text-slate-500 text-center mb-8 leading-relaxed">
-                Sign in to engineer your metabolism, track your fasts!
-              </p>
-
-              {error && (
-                <div className="mb-6 p-3 bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-lg text-center font-medium">
-                  {error}
-                </div>
-              )}
-
-              {step === 1 ? (
-                <form onSubmit={handleRequestOtp} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Email address
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-slate-900 bg-white transition-shadow"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    disabled={loading}
-                    className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
-                  >
-                    {loading ? 'Sending Code...' : 'Send Code'}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleVerifyOtp} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5 text-center">
-                      6-Digit OTP
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      onFocus={() => setIsFocused(true)}
-                      onBlur={() => setIsFocused(false)}
-                      className="w-full px-4 py-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-500/50 text-center text-xl font-mono tracking-widest text-slate-900 bg-white transition-shadow uppercase"
-                      placeholder="000000"
-                      maxLength={6}
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    disabled={loading}
-                    className="w-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 mt-2 shadow-sm"
-                  >
-                    {loading ? 'Verifying...' : 'Verify & Login'}
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      setStep(1);
-                      setOtp('');
-                      setError('');
-                    }}
-                    className="w-full text-sm text-slate-500 hover:text-teal-600 transition-colors mt-2 font-medium"
-                  >
-                    Use a different email
-                  </button>
-                </form>
-              )}
-            </div>
+          {/* RIGHT COLUMN: Sign-in Card (5 Cols) */}
+          <div className="col-span-5 flex justify-end w-full">
+            {renderSignInForm()}
           </div>
 
         </div>
+
       </div>
     </div>
   );
