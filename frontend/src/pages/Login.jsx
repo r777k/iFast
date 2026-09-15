@@ -14,27 +14,32 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // --- Image Cycling State & Logic (Desktop) ---
+  // Previews data
   const images = [
     { src: '/preview-LiveMetabolicState.png', alt: 'Live Metabolic State' },
     { src: '/preview-Calendar.png', alt: 'Fasting Calendar' },
     { src: '/preview-Trends.png', alt: 'Duration Trends' }
   ];
 
+  // Desktop cycling indices
   const [slotIndices, setSlotIndices] = useState([0, 1, 2]);
+
+  // Mobile stacked carousel index
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (isFocused || isHovered || prefersReducedMotion) return;
 
     const timer = setInterval(() => {
-      setSlotIndices((prev) => {
-        return [prev[1], prev[2], prev[0]];
-      });
+      // Rotate desktop slots
+      setSlotIndices((prev) => [prev[1], prev[2], prev[0]]);
+      // Advance mobile stacked carousel
+      setCurrentSlide((prev) => (prev + 1) % images.length);
     }, 4500);
 
     return () => clearInterval(timer);
-  }, [isFocused, isHovered]);
+  }, [isFocused, isHovered, images.length]);
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
@@ -163,7 +168,6 @@ export default function Login() {
         
         {/* --- TOP: Branding & Title --- */}
         <div className="flex flex-col mb-8 lg:mb-12">
-          {/* Logo & Title */}
           <div className="flex items-center gap-3 mb-1.5">
             <img src="/icon.svg" alt="FastTracker Logo" className="w-8 h-8 rounded-lg shadow-md bg-white p-1" />
             <div className="flex flex-col">
@@ -172,28 +176,42 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Single-line Tagline */}
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-light text-slate-200 tracking-tight whitespace-nowrap overflow-x-auto mt-4 pb-2">
             Know where you are in your fast—<span className="font-semibold text-white"> and what comes next.</span>
           </h2>
         </div>
 
-        {/* --- MOBILE VIEW: Sign-in Box Above, Image Slider Below --- */}
+        {/* --- MOBILE VIEW: Form Above, Stacked Image Carousel Below --- */}
         <div className="flex flex-col lg:hidden items-center w-full space-y-8 pb-12">
-          {/* Sign-in Card */}
+          {/* Sign-in Form */}
           <div className="w-full flex justify-center">
             {renderSignInForm()}
           </div>
 
-          {/* Image Slider */}
-          <div className="w-full">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 text-center">Product Preview</h3>
-            <div className="flex overflow-x-auto space-x-4 pb-4 snap-x snap-mandatory scrollbar-none px-2">
-              {images.map((img, idx) => (
-                <div key={idx} className="shrink-0 w-[280px] snap-center bg-slate-950/60 p-2 rounded-xl border border-slate-700/60 shadow-lg">
-                  <img src={img.src} alt={img.alt} className="w-full h-auto rounded-lg object-cover" />
-                </div>
+          {/* Absolute-Stacked Image Carousel */}
+          <div className="w-full max-w-md pt-2">
+            <div className="relative w-full aspect-[4/3] sm:aspect-video mb-8">
+              {images.map((slide, idx) => (
+                <img
+                  key={slide.src}
+                  src={slide.src}
+                  alt={slide.alt}
+                  className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-1000 ease-in-out motion-reduce:transition-none ${
+                    idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                  }`}
+                />
               ))}
+              {/* Carousel Indicators */}
+              <div className="absolute -bottom-6 left-0 right-0 flex justify-center gap-2 z-20">
+                {images.map((_, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      idx === currentSlide ? 'w-6 bg-teal-400' : 'w-1.5 bg-slate-600'
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
