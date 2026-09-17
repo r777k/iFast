@@ -4,29 +4,19 @@ import resend
 from fastapi import FastAPI, HTTPException, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
-from contextlib import asynccontextmanager
 
 from database import get_db_connection
 from security import hash_otp, create_access_token
-from utils.scheduler import setup_scheduler, scheduler
+# The scheduler imports and lifespan functions have been removed
 from routers import sessions, meals, plans, analytics, settings
 
 # 1. Configure external services
 resend.api_key = os.getenv("RESEND_API_KEY")
 
-# 2. Define Lifespan for Background Tasks
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("Starting background scheduler...")
-    setup_scheduler()
-    yield
-    print("Shutting down background scheduler...")
-    scheduler.shutdown()
+# 2. Initialize the FastAPI App (lifespan removed)
+app = FastAPI(title="FastTracker API")
 
-# 3. Initialize the FastAPI App FIRST
-app = FastAPI(title="FastTracker API", lifespan=lifespan)
-
-# 4. Add Middleware
+# 3. Add Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip('/')],
@@ -35,16 +25,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 5. Define Auth Schemas and Routes
+# 4. Define Auth Schemas and Routes
 class OTPRequest(BaseModel):
     email: EmailStr
 
 class OTPVerify(BaseModel):
     email: EmailStr
     otp: str
-    timezone: str = "UTC" # Add this field
+    timezone: str = "UTC"
 
-# Wrap auth in its own router
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @auth_router.post("/request-otp")
@@ -86,14 +75,14 @@ async def verify_otp(payload: OTPVerify):
             )
         else:
             user_id = user['id']
-            # Optionally update their timezone if they traveled
             await conn.execute("UPDATE users SET time_zone = $1 WHERE id = $2", payload.timezone, user_id)
         await conn.execute("DELETE FROM auth_otps WHERE email = $1", payload.email)
+    
     token = create_access_token(data={"sub": str(user_id), "email": payload.email})
     return {"access_token": token, "token_type": "bearer"}
 
-# 6. Include ALL Routers LAST (After 'app' is defined)
-app.include_router(auth_router, prefix="/v1")      # <-- Auth is now under /v1
+# 5. Include ALL Routers
+app.include_router(auth_router, prefix="/v1")
 app.include_router(sessions.router, prefix="/v1")
 app.include_router(meals.router, prefix="/v1")
 app.include_router(plans.router, prefix="/v1")
