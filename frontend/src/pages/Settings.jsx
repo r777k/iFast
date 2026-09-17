@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Bell, Calendar, Clock, Download, Smartphone, Share, CheckCircle2 } from 'lucide-react';
+import { Save, Calendar, Clock, Download, Smartphone, Share, CheckCircle2 } from 'lucide-react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,22 +15,14 @@ export default function Settings() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
 
-  // 1. Fasting Rules State (Matched to RulesUpdate schema)
+  // 1. Fasting Rules State
   const [rules, setRules] = useState({
     min_duration_to_count_hours: 12,
     snack_behavior: 'ask_each_time',
     allow_edit_past_meals: true
   });
   
-  // 2. Notifications State (Matched to NotificationsUpdate schema)
-  const [notifications, setNotifications] = useState({
-    notifications_enabled: true,
-    remind_before_eating_window_end: false,
-    remind_before_minutes: 30,
-    light_checkins_enabled: false
-  });
-
-  // 3. Plan State (Matched to PlanCreate schema)
+  // 2. Plan State
   const [plan, setPlan] = useState({
     name: '16:8 Standard',
     fast_start_time: '20:00',
@@ -56,14 +48,12 @@ export default function Settings() {
     // --- Fetch Settings Logic ---
     const fetchAllSettings = async () => {
       try {
-        const [rulesRes, notifRes, plansRes] = await Promise.all([
+        const [rulesRes, plansRes] = await Promise.all([
           apiClient.get('/settings/fasting-rules'),
-          apiClient.get('/settings/notifications'),
           apiClient.get('/fasting-plans') 
         ]);
         
         if (rulesRes.data) setRules(rulesRes.data);
-        if (notifRes.data) setNotifications(notifRes.data);
         
         const planList = plansRes.data?.plans;
         if (planList && planList.length > 0) {
@@ -118,11 +108,10 @@ export default function Settings() {
 
       await Promise.all([
         apiClient.patch('/settings/fasting-rules', rules),
-        apiClient.patch('/settings/notifications', notifications),
         apiClient.post('/fasting-plans', planPayload)
       ]);
       
-      alert('All settings saved successfully.');
+      alert('Settings saved successfully.');
     } catch (error) {
       console.error('Save error:', error);
       if (error.response?.status === 422 && error.response?.data?.detail) {
@@ -265,43 +254,7 @@ export default function Settings() {
         </div>
       </section>
 
-      {/* --- Section 2: Notifications --- */}
-      <section className="bg-surface dark:bg-surface-dark p-6 rounded-xl border border-border dark:border-border-dark shadow-sm">
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="w-5 h-5 text-primary" />
-          <h3 className="text-lg font-bold text-text-primary dark:text-text-light">Notifications</h3>
-        </div>
-        
-        <div className="space-y-4">
-          <label className="flex items-center justify-between p-4 border border-border dark:border-border-dark rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-            <div>
-              <span className="block text-sm font-bold text-text-primary dark:text-text-light">Global Notifications</span>
-              <span className="block text-xs text-text-secondary mt-0.5">Enable or disable all app alerts</span>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={notifications.notifications_enabled}
-              onChange={(e) => setNotifications({...notifications, notifications_enabled: e.target.checked})}
-              className="w-5 h-5 text-primary focus:ring-primary border-gray-300 rounded"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-4 border border-border dark:border-border-dark rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-            <div>
-              <span className="block text-sm font-bold text-text-primary dark:text-text-light">Eating Window Closing</span>
-              <span className="block text-xs text-text-secondary mt-0.5">Remind me before it's time to fast again</span>
-            </div>
-            <input 
-              type="checkbox" 
-              checked={notifications.remind_before_eating_window_end}
-              onChange={(e) => setNotifications({...notifications, remind_before_eating_window_end: e.target.checked})}
-              className="w-5 h-5 text-primary focus:ring-primary border-gray-300 rounded"
-            />
-          </label>
-        </div>
-      </section>
-
-      {/* --- Section 3: Fasting Rules --- */}
+      {/* --- Section 2: Fasting Rules --- */}
       <section className="bg-surface dark:bg-surface-dark p-6 rounded-xl border border-border dark:border-border-dark shadow-sm">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="w-5 h-5 text-primary" />
@@ -362,6 +315,7 @@ export default function Settings() {
         </div>
       </section>
 
+      {/* --- Section 3: Danger Zone --- */}
       <section className="bg-status-error/5 p-6 rounded-xl border border-status-error/20 mt-8">
         <h3 className="text-lg font-bold text-status-error mb-2">Danger Zone</h3>
         <p className="text-sm text-text-secondary mb-4">Permanently delete your account and all telemetry. This cannot be undone.</p>
@@ -404,7 +358,7 @@ export default function Settings() {
           className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover active:bg-primary-active text-surface font-medium px-6 py-4 rounded-xl shadow-lg transition-colors disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
-          {saving ? 'Saving...' : 'Save All Settings'}
+          {saving ? 'Saving...' : 'Save Settings'}
         </button>
       </div>
 
