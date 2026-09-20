@@ -303,12 +303,12 @@ async def purge_user_data(user_id: str = Depends(get_current_user)):
 @router.get("/export")
 async def export_sessions_csv(user_id: str = Depends(get_current_user)):
     async with get_db_connection() as conn:
-        # Fetch all historical records for the authenticated user
+        # Fetch all historical records using the exact schema column names
         records = await conn.fetch("""
-            SELECT id, start_time, end_time, duration_hours, target_duration_hours, status 
+            SELECT id, fast_start_time, actual_fast_end_time, actual_duration_hours, target_duration_hours, status 
             FROM fasting_sessions 
             WHERE user_id = $1 
-            ORDER BY start_time DESC
+            ORDER BY fast_start_time DESC
         """, user_id)
 
     # Generator function to stream CSV rows dynamically
@@ -322,13 +322,13 @@ async def export_sessions_csv(user_id: str = Depends(get_current_user)):
         stream.seek(0)
         stream.truncate(0)
         
-        # Write data rows
+        # Write data rows mapping to the corrected column names
         for record in records:
             writer.writerow([
                 record["id"],
-                record["start_time"], 
-                record["end_time"],
-                round(record["duration_hours"], 2) if record["duration_hours"] else "",
+                record["fast_start_time"], 
+                record["actual_fast_end_time"],
+                round(record["actual_duration_hours"], 2) if record["actual_duration_hours"] else "",
                 record["target_duration_hours"],
                 record["status"]
             ])
