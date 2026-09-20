@@ -36,7 +36,7 @@ export default function History() {
     setIsExporting(true);
     try {
       // Request the blob data from the backend endpoint
-      const response = await apiClient.get('/sessions/export', {
+      const response = await apiClient.get('/fasting-sessions/export', {
         responseType: 'blob', 
       });
       
