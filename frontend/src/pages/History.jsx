@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { parseISO, format, subMonths, addMonths, startOfMonth, endOfMonth, getDaysInMonth, getDay, isSameDay } from 'date-fns';
-import { ChevronLeft, ChevronRight, Award, Clock, Calendar as CalendarIcon, Flame, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Award, Clock, Calendar as CalendarIcon, Flame, Zap, Download } from 'lucide-react';
 import { apiClient } from '../api/client';
 import EditSessionModal from '../components/EditSessionModal';
 import LogPastFastModal from '../components/LogPastFastModal';
@@ -12,6 +12,7 @@ export default function History() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchMonthData = async (date) => {
     setLoading(true);
@@ -29,6 +30,36 @@ export default function History() {
   useEffect(() => {
     fetchMonthData(currentMonth);
   }, [currentMonth]);
+
+  // --- CSV Export Logic ---
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      // Request the blob data from the backend endpoint
+      const response = await apiClient.get('/sessions/export', {
+        responseType: 'blob', 
+      });
+      
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Create a temporary <a> tag to trigger the browser's download prompt
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'fasting_history.csv');
+      document.body.appendChild(link);
+      
+      // Trigger download and cleanup
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to export CSV:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -72,7 +103,25 @@ export default function History() {
 
   return (
     <div className="flex flex-col h-full space-y-6 pt-4 px-4 md:px-8 max-w-4xl mx-auto pb-24">
-      <header className="flex justify-between items-center bg-surface dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border dark:border-border-dark">
+      
+      {/* Header Row with Export Button */}
+      <header className="flex justify-between items-end mb-2">
+        <div>
+          <h2 className="text-2xl font-bold text-text-primary dark:text-text-light tracking-tight">History</h2>
+          <p className="text-sm text-text-secondary">Review your fasting timeline.</p>
+        </div>
+        <button 
+          onClick={handleExportCSV}
+          disabled={isExporting}
+          className="flex items-center gap-2 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark hover:bg-gray-50 dark:hover:bg-gray-800 text-text-primary dark:text-text-light font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 text-sm shadow-sm"
+        >
+          <Download className="w-4 h-4 text-primary" />
+          {isExporting ? 'Exporting...' : 'Export CSV'}
+        </button>
+      </header>
+
+      {/* Month Navigator */}
+      <div className="flex justify-between items-center bg-surface dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border dark:border-border-dark">
         <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
           <ChevronLeft className="w-5 h-5 text-text-secondary" />
         </button>
@@ -82,7 +131,7 @@ export default function History() {
         <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" disabled={currentMonth > new Date()}>
           <ChevronRight className="w-5 h-5 text-text-secondary" />
         </button>
-      </header>
+      </div>
 
       {/* Stats Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
