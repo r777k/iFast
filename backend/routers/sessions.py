@@ -296,3 +296,49 @@ async def purge_user_data(user_id: str = Depends(get_current_user)):
             await conn.execute("DELETE FROM users WHERE id = $1", user_id)
             
     return {"status": "success", "message": "All data permanently deleted"}
+
+ 
+
+
+@router.get("/export")
+async def export_sessions_csv(user_id: str = Depends(get_current_user)):
+    async with get_db_connection() as conn:
+        # Fetch all historical records for the authenticated user
+        records = await conn.fetch("""
+            SELECT id, start_time, end_time, duration_hours, target_duration_hours, status 
+            FROM fasting_sessions 
+            WHERE user_id = $1 
+            ORDER BY start_time DESC
+        """, user_id)
+
+    # Generator function to stream CSV rows dynamically
+    def iter_csv():
+        stream = io.StringIO()
+        writer = csv.writer(stream)
+        
+        # Write header row
+        writer.writerow(["Session ID", "Start Time", "End Time", "Duration (Hours)", "Target (Hours)", "Status"])
+        yield stream.getvalue()
+        stream.seek(0)
+        stream.truncate(0)
+        
+        # Write data rows
+        for record in records:
+            writer.writerow([
+                record["id"],
+                record["start_time"], 
+                record["end_time"],
+                round(record["duration_hours"], 2) if record["duration_hours"] else "",
+                record["target_duration_hours"],
+                record["status"]
+            ])
+            yield stream.getvalue()
+            stream.seek(0)
+            stream.truncate(0)
+
+    # Return as a downloadable CSV stream
+    return StreamingResponse(
+        iter_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=fasting_history.csv"}
+    )
