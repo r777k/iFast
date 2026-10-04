@@ -7,6 +7,8 @@ from typing import Optional
 from datetime import datetime, timezone
 from database import get_db_connection
 from dependencies import get_current_user
+import traceback # Add this at the very top of your sessions.py file if not there
+
 
 router = APIRouter(prefix="/fasting-sessions", tags=["Sessions"])
 
@@ -356,11 +358,15 @@ class SnackInferenceRequest(BaseModel):
 # Add this endpoint
 @router.post("/snack-inference")
 async def process_snack_inference(payload: SnackInferenceRequest, user_id: str = Depends(get_current_user)):
-    from services.inference import evaluate_midfast_intake
-    
     try:
+        from services.inference import evaluate_midfast_intake
+        
         # Run the text through the 3-stage deterministic architecture
         result = evaluate_midfast_intake(payload.text, mode=payload.fasting_mode)
         return result
     except Exception as e:
+        # This will print the exact line and error to your Railway logs!
+        print("--- SNACK INFERENCE ERROR ---")
+        traceback.print_exc() 
+        print("-----------------------------")
         raise HTTPException(status_code=500, detail=str(e))
