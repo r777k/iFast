@@ -7,6 +7,7 @@ import { Square, Coffee, Settings, LogOut, Play, X } from 'lucide-react';
 import SnackDecisionModal from '../components/SnackDecisionModal';
 import TodaysPlanCard from '../components/TodaysPlanCard';
 import EditSessionModal from '../components/EditSessionModal';
+import SnackEvaluationModal from '../components/SnackEvaluationModal';
 
 export default function Dashboard() {
   const { logout } = useAuth();
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [todayPlan, setTodayPlan] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [stages, setStages] = useState([]);
+  const [isSnackModalOpen, setIsSnackModalOpen] = useState(false);
 
   const fetchDashboard = async () => {
     try {
@@ -205,7 +207,7 @@ export default function Dashboard() {
               </button>
               
               <button 
-                onClick={() => setIsMealModalOpen(true)}
+                onClick={() => setIsSnackModalOpen(true)}
                 disabled={actionLoading}
                 className="flex flex-col items-center justify-center p-4 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-text-primary dark:text-text-light rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-150 disabled:opacity-50"
               >
@@ -256,6 +258,11 @@ export default function Dashboard() {
           onRefresh={fetchDashboard} 
         />
       )}
+      <SnackEvaluationModal 
+        isOpen={isSnackModalOpen} 
+        onClose={() => setIsSnackModalOpen(false)} 
+        onEndFast={() => handleEndFast()} // Assuming handleEndFast is your existing function to stop the timer
+      />
     </div>
   );
 }
