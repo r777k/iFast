@@ -345,3 +345,22 @@ async def export_sessions_csv(user_id: str = Depends(get_current_user)):
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=fasting_history.csv"}
     )
+
+
+
+# Add this schema to the top of your file
+class SnackInferenceRequest(BaseModel):
+    text: str
+    fasting_mode: str = "practical"  # defaults to 'practical', can pass 'clean'
+
+# Add this endpoint
+@router.post("/snack-inference")
+async def process_snack_inference(payload: SnackInferenceRequest, user_id: str = Depends(get_current_user)):
+    from services.inference import evaluate_midfast_intake
+    
+    try:
+        # Run the text through the 3-stage deterministic architecture
+        result = evaluate_midfast_intake(payload.text, mode=payload.fasting_mode)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
