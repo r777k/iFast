@@ -45,7 +45,7 @@ You must respond in valid JSON format matching this exact structure:
 
 def extract_intake_with_llm(user_text: str) -> IntakeExtraction:
     response = groq_client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_text}
