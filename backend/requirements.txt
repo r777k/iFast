@@ -6,4 +6,4 @@ python-jose[cryptography]==3.3.0
 resend==0.7.1
 python-dotenv==1.0.1
 apscheduler==3.10.4
-grok==1.7.0
+groq==1.7.0
