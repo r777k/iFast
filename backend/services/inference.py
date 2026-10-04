@@ -48,7 +48,8 @@ You must respond in valid JSON format matching this exact structure:
 """
 
 def extract_intake_with_llm(user_text: str) -> IntakeExtraction:
-    response = xai_client.chat.completions.create( # Use groq_client if you reverted to Groq
+    response = groq_client.chat.completions.create(
+        # Update the model string here:
         model="openai/gpt-oss-20b", 
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
